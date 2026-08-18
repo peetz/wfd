@@ -1,0 +1,11 @@
+{
+  "domain": "wfd",
+  "name": "What's For Dinner?",
+  "codeowners": ["@peetz"],
+  "config_flow": true,
+  "documentation": "https://github.com/peetz/wfd",
+  "issue_tracker": "https://github.com/peetz/wfd/issues",
+  "iot_class": "local_push",
+  "requirements": [],
+  "version": "0.0.1"
+}
