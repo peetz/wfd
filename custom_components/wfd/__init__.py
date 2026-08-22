@@ -1,0 +1,1 @@
+"""WFD Home Assistant integration."""
