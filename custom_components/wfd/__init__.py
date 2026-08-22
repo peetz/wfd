@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+
 from .services import async_setup_services
 from .storage import WFDStorage
 from .meal_library import MealLibrary
 
 
-async def async_setup_entry(hass, entry):
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up WFD from a config entry."""
     storage = WFDStorage(hass)
     await storage.async_load()
@@ -23,7 +26,7 @@ async def async_setup_entry(hass, entry):
     return True
 
 
-async def async_unload_entry(hass, entry):
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Unload WFD."""
     hass.data.get("wfd", {}).pop(entry.entry_id, None)
     return True
