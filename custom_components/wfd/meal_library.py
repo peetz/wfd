@@ -38,9 +38,6 @@ class MealLibrary:
     async def async_archive_meal(self, meal_id: str) -> Meal:
         """Archive a meal without deleting it."""
         meal = await self._get_existing_meal(meal_id)
-        if not meal.active:
-            return meal
-
         archived = Meal(id=meal.id, name=meal.name, active=False)
         await self._storage.async_set_meal(archived)
         return archived
@@ -48,9 +45,6 @@ class MealLibrary:
     async def async_restore_meal(self, meal_id: str) -> Meal:
         """Restore an archived meal after rechecking name uniqueness."""
         meal = await self._get_existing_meal(meal_id)
-        if meal.active:
-            return meal
-
         await self._ensure_unique_name(meal.name, excluding_meal_id=meal.id)
         restored = Meal(id=meal.id, name=meal.name, active=True)
         await self._storage.async_set_meal(restored)
