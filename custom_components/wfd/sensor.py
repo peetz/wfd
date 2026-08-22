@@ -12,7 +12,10 @@ except ModuleNotFoundError:
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up WFD sensors."""
     data = hass.data["wfd"][entry.entry_id]
-    async_add_entities([WFDMealLibrarySensor(data["meal_library"])])
+    async_add_entities([
+        WFDMealLibrarySensor(data["meal_library"]),
+        WFDHouseholdSensor(data["household"]),
+    ])
 
 
 class WFDMealLibrarySensor(SensorEntity):
@@ -35,3 +38,28 @@ class WFDMealLibrarySensor(SensorEntity):
 
     async def async_update(self):
         self._meals = await self._meal_library.async_get_meals()
+
+
+class WFDHouseholdSensor(SensorEntity):
+    """Expose active and archived WFD household voters."""
+
+    _attr_name = "WFD Household"
+
+    def __init__(self, household):
+        self._household = household
+        self._attr_unique_id = "wfd_household"
+        self._voters = []
+
+    @property
+    def native_value(self):
+        return len([voter for voter in self._voters if voter.active])
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "active": [voter.name for voter in self._voters if voter.active],
+            "archived": [voter.name for voter in self._voters if not voter.active],
+        }
+
+    async def async_update(self):
+        self._voters = await self._household.async_get_voters(active_only=False)
