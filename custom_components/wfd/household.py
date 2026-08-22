@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+try:
+    from homeassistant.core import EVENT_STATE_CHANGED
+except ModuleNotFoundError:
+    EVENT_STATE_CHANGED = "state_changed"
+
 from .errors import VoterNotFoundError, VoterUnavailableError
 from .models import Voter
 from .storage import WFDStorage
@@ -13,6 +18,29 @@ class Household:
     def __init__(self, hass, storage: WFDStorage) -> None:
         self._hass = hass
         self._storage = storage
+        self._remove_state_listener = None
+
+    async def async_start(self) -> None:
+        """Discover current Persons and watch for future Person changes."""
+        await self.async_sync()
+        if self._remove_state_listener is None and hasattr(self._hass, "bus"):
+            self._remove_state_listener = self._hass.bus.async_listen(
+                EVENT_STATE_CHANGED,
+                self._async_handle_state_changed,
+            )
+
+    async def async_stop(self) -> None:
+        """Stop watching Home Assistant Person changes."""
+        if self._remove_state_listener is not None:
+            self._remove_state_listener()
+            self._remove_state_listener = None
+
+    async def _async_handle_state_changed(self, event) -> None:
+        """Automatically include newly discovered Home Assistant Persons."""
+        entity_id = event.data.get("entity_id")
+        if not entity_id or not entity_id.startswith("person."):
+            return
+        await self.async_sync()
 
     def async_get_available_persons(self) -> list[dict[str, str]]:
         """Return Home Assistant Persons available to become WFD voters."""
@@ -22,6 +50,24 @@ class Household:
                 continue
             persons.append({"id": state.entity_id, "name": state.name})
         return sorted(persons, key=lambda person: person["name"].casefold())
+
+    async def async_sync(self) -> list[Voter]:
+        """Discover HA Persons and automatically include new people as voters."""
+        persons = self.async_get_available_persons()
+        existing_voters = {voter.id: voter for voter in await self._storage.async_get_users()}
+        voters: list[Voter] = []
+
+        for person in persons:
+            existing = existing_voters.get(person["id"])
+            if existing is None:
+                existing = Voter(id=person["id"], name=person["name"], active=True)
+                await self._storage.async_set_user(existing)
+            elif existing.active and existing.name != person["name"]:
+                existing = Voter(id=existing.id, name=person["name"], active=True)
+                await self._storage.async_set_user(existing)
+            voters.append(existing)
+
+        return voters
 
     async def async_get_voters(self, active_only: bool = True) -> list[Voter]:
         """Return active voters by default, or the complete voter list."""

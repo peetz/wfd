@@ -43,6 +43,44 @@ def test_discovers_home_assistant_persons(storage: WFDStorage) -> None:
 
 
 @pytest.mark.asyncio
+async def test_auto_discovery_includes_new_person_and_preserves_archive(storage: WFDStorage) -> None:
+    service = household(storage)
+
+    await service.async_sync()
+    await service.async_archive_voter("person.clare")
+
+    service._hass.states.async_all.return_value.append(FakeState("person.evelyn", "Evelyn"))
+    await service.async_sync()
+
+    assert await service.async_get_voters() == [
+        Voter(id="person.steve", name="Steve"),
+        Voter(id="person.evelyn", name="Evelyn"),
+    ]
+    assert sorted(await service.async_get_voters(active_only=False), key=lambda voter: voter.id) == [
+        Voter(id="person.clare", name="Clare", active=False),
+        Voter(id="person.evelyn", name="Evelyn"),
+        Voter(id="person.steve", name="Steve"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_start_registers_listener_and_stop_removes_it(storage: WFDStorage) -> None:
+    service = household(storage)
+    remove_listener = MagicMock()
+    service._hass.bus.async_listen.return_value = remove_listener
+
+    await service.async_start()
+
+    service._hass.bus.async_listen.assert_called_once()
+    assert service._remove_state_listener is remove_listener
+
+    await service.async_stop()
+
+    remove_listener.assert_called_once()
+    assert service._remove_state_listener is None
+
+
+@pytest.mark.asyncio
 async def test_add_archive_and_restore_voter(storage: WFDStorage) -> None:
     service = household(storage)
 
