@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import inspect
+
 from .services import async_setup_services
 from .storage import WFDStorage
 from .meal_library import MealLibrary
@@ -24,7 +26,7 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
     await async_setup_services(hass, meal_library)
 
     forward_setups = getattr(hass.config_entries, "async_forward_entry_setups", None)
-    if forward_setups:
+    if inspect.iscoroutinefunction(forward_setups):
         await forward_setups(entry, PLATFORMS)
 
     return True
@@ -33,7 +35,7 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
 async def async_unload_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
     """Unload WFD."""
     unload_platforms = getattr(hass.config_entries, "async_unload_platforms", None)
-    if unload_platforms:
+    if inspect.iscoroutinefunction(unload_platforms):
         await unload_platforms(entry, PLATFORMS)
 
     hass.data.get("wfd", {}).pop(entry.entry_id, None)
