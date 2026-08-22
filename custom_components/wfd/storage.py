@@ -66,6 +66,17 @@ class WFDStorage:
         self._data["meals"][meal.id] = asdict(meal)
         await self.async_save()
 
+    async def async_get_meal(self, meal_id: str) -> Meal | None:
+        """Return a meal by ID, or None when it does not exist."""
+        data = self._data["meals"].get(meal_id)
+        if data is None:
+            return None
+        return deserialize_meal(data)
+
+    async def async_get_meals(self) -> list[Meal]:
+        """Return all persisted meals as domain objects."""
+        return [deserialize_meal(data) for data in self._data["meals"].values()]
+
     async def async_set_voting_round(self, voting_round: VotingRound) -> None:
         """Create or update a voting round, protecting completed rounds."""
         existing = self._data["rounds"].get(voting_round.id)
