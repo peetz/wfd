@@ -4,9 +4,13 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True, slots=True)
-class User:
-    """A household member who may participate in WFD voting."""
+class Voter:
+    """A Home Assistant Person who participates in WFD voting."""
 
     id: str
     name: str
     active: bool = True
+
+
+# Kept as a compatibility alias for the existing voting-round model.
+User = Voter
