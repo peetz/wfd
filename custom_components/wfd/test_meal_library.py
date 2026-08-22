@@ -124,7 +124,7 @@ async def test_get_meals_defaults_to_active_only(library: MealLibrary) -> None:
     """Active retrieval excludes archived meals by default."""
     active = await library.async_add_meal("Pizza")
     archived = await library.async_add_meal("Pasta")
-    await library.async_archive_meal(archived.id)
+    archived = await library.async_archive_meal(archived.id)
 
     assert await library.async_get_meals() == [active]
     assert await library.async_get_meals(active_only=False) == [active, archived]
