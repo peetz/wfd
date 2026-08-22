@@ -4,5 +4,6 @@
   "version": "0.1.0",
   "documentation": "https://github.com/peetz/wfd",
   "requirements": [],
-  "codeowners": ["@peetz"]
+  "codeowners": ["@peetz"],
+  "config_flow": true
 }
