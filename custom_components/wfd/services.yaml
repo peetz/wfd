@@ -1,0 +1,79 @@
+add_meal:
+  name: Add meal
+  description: Add an active meal to WFD.
+  fields:
+    name:
+      name: Name
+      description: Meal name.
+      required: true
+      selector:
+        text:
+
+rename_meal:
+  name: Rename meal
+  description: Rename an existing meal.
+  fields:
+    meal_id:
+      name: Meal ID
+      required: true
+      selector:
+        text:
+    name:
+      name: Name
+      required: true
+      selector:
+        text:
+
+archive_meal:
+  name: Archive meal
+  description: Archive a meal without deleting it.
+  fields:
+    meal_id:
+      name: Meal ID
+      required: true
+      selector:
+        text:
+
+restore_meal:
+  name: Restore meal
+  description: Restore an archived meal.
+  fields:
+    meal_id:
+      name: Meal ID
+      required: true
+      selector:
+        text:
+
+add_voter:
+  name: Add voter
+  description: Add a Home Assistant Person as a WFD voter.
+  fields:
+    person_id:
+      name: Person
+      description: Home Assistant Person entity ID.
+      required: true
+      selector:
+        entity:
+          domain: person
+
+archive_voter:
+  name: Archive voter
+  description: Archive a WFD voter while preserving their identity for history.
+  fields:
+    person_id:
+      name: Person
+      required: true
+      selector:
+        entity:
+          domain: person
+
+restore_voter:
+  name: Restore voter
+  description: Restore an archived WFD voter.
+  fields:
+    person_id:
+      name: Person
+      required: true
+      selector:
+        entity:
+          domain: person

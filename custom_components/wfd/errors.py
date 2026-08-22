@@ -15,3 +15,11 @@ class DuplicateMealError(WFDServiceError):
 
 class InvalidMealNameError(WFDServiceError):
     """Raised when a meal name is empty or otherwise invalid."""
+
+
+class VoterNotFoundError(WFDServiceError):
+    """Raised when a requested WFD voter does not exist."""
+
+
+class VoterUnavailableError(WFDServiceError):
+    """Raised when a WFD voter does not map to a current HA Person."""

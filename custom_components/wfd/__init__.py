@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import inspect
 
+from .household import Household
+from .meal_library import MealLibrary
 from .services import async_setup_services
 from .storage import WFDStorage
-from .meal_library import MealLibrary
 
 PLATFORMS = ["sensor"]
 
@@ -15,15 +16,16 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
     """Set up WFD from a config entry."""
     storage = WFDStorage(hass)
     await storage.async_load()
-
     meal_library = MealLibrary(storage)
+    household = Household(hass, storage)
 
     hass.data.setdefault("wfd", {})[entry.entry_id] = {
         "storage": storage,
         "meal_library": meal_library,
+        "household": household,
     }
 
-    await async_setup_services(hass, meal_library)
+    await async_setup_services(hass, meal_library, household)
 
     forward_setups = getattr(hass.config_entries, "async_forward_entry_setups", None)
     if inspect.iscoroutinefunction(forward_setups):
@@ -37,6 +39,5 @@ async def async_unload_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
     unload_platforms = getattr(hass.config_entries, "async_unload_platforms", None)
     if inspect.iscoroutinefunction(unload_platforms):
         await unload_platforms(entry, PLATFORMS)
-
     hass.data.get("wfd", {}).pop(entry.entry_id, None)
     return True
