@@ -53,5 +53,5 @@ async def async_setup_services(hass: "HomeAssistant", meal_library: "MealLibrary
 
     hass.services.async_register(DOMAIN, ADD_MEAL, add_meal)
     hass.services.async_register(DOMAIN, RENAME_MEAL, rename_meal)
-    hass.services.async_register(DOMAIN, ARCHIVE_MEAL, restore_meal)
+    hass.services.async_register(DOMAIN, ARCHIVE_MEAL, archive_meal)
     hass.services.async_register(DOMAIN, RESTORE_MEAL, restore_meal)
