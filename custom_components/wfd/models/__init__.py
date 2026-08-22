@@ -2,7 +2,7 @@
 
 from .meal import Meal
 from .round_result import RoundResult
-from .user import User
+from .user import User, Voter
 from .vote import Vote
 from .voting_round import VotingRound
 
@@ -10,6 +10,7 @@ __all__ = [
     "Meal",
     "RoundResult",
     "User",
+    "Voter",
     "Vote",
     "VotingRound",
 ]
