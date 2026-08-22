@@ -18,7 +18,7 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
     await storage.async_load()
     meal_library = MealLibrary(storage)
     household = Household(hass, storage)
-    await household.async_sync()
+    await household.async_start()
 
     hass.data.setdefault("wfd", {})[entry.entry_id] = {
         "storage": storage,
@@ -37,6 +37,10 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
 
 async def async_unload_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
     """Unload WFD."""
+    data = hass.data.get("wfd", {}).get(entry.entry_id)
+    if data is not None:
+        await data["household"].async_stop()
+
     unload_platforms = getattr(hass.config_entries, "async_unload_platforms", None)
     if inspect.iscoroutinefunction(unload_platforms):
         await unload_platforms(entry, PLATFORMS)
