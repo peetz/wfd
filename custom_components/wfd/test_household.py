@@ -46,14 +46,16 @@ def test_discovers_home_assistant_persons(storage: WFDStorage) -> None:
 async def test_auto_discovery_includes_new_person_and_preserves_archive(storage: WFDStorage) -> None:
     service = household(storage)
 
-    await service.async_archive_voter("person.steve") if False else None
     await service.async_sync()
     await service.async_archive_voter("person.clare")
 
     service._hass.states.async_all.return_value.append(FakeState("person.evelyn", "Evelyn"))
     await service.async_sync()
 
-    assert await service.async_get_voters() == [Voter(id="person.steve", name="Steve"), Voter(id="person.evelyn", name="Evelyn")]
+    assert await service.async_get_voters() == [
+        Voter(id="person.steve", name="Steve"),
+        Voter(id="person.evelyn", name="Evelyn"),
+    ]
     assert await service.async_get_voters(active_only=False) == [
         Voter(id="person.steve", name="Steve"),
         Voter(id="person.clare", name="Clare", active=False),
