@@ -18,6 +18,7 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
     await storage.async_load()
     meal_library = MealLibrary(storage)
     household = Household(hass, storage)
+    await household.async_sync()
 
     hass.data.setdefault("wfd", {})[entry.entry_id] = {
         "storage": storage,
