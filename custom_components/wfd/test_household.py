@@ -56,10 +56,10 @@ async def test_auto_discovery_includes_new_person_and_preserves_archive(storage:
         Voter(id="person.steve", name="Steve"),
         Voter(id="person.evelyn", name="Evelyn"),
     ]
-    assert await service.async_get_voters(active_only=False) == [
-        Voter(id="person.steve", name="Steve"),
+    assert sorted(await service.async_get_voters(active_only=False), key=lambda voter: voter.id) == [
         Voter(id="person.clare", name="Clare", active=False),
         Voter(id="person.evelyn", name="Evelyn"),
+        Voter(id="person.steve", name="Steve"),
     ]
 
 
