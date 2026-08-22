@@ -23,6 +23,24 @@ class Household:
             persons.append({"id": state.entity_id, "name": state.name})
         return sorted(persons, key=lambda person: person["name"].casefold())
 
+    async def async_sync(self) -> list[Voter]:
+        """Discover HA Persons and automatically include new people as voters."""
+        persons = self.async_get_available_persons()
+        existing_voters = {voter.id: voter for voter in await self._storage.async_get_users()}
+        voters: list[Voter] = []
+
+        for person in persons:
+            existing = existing_voters.get(person["id"])
+            if existing is None:
+                existing = Voter(id=person["id"], name=person["name"], active=True)
+                await self._storage.async_set_user(existing)
+            elif existing.active and existing.name != person["name"]:
+                existing = Voter(id=existing.id, name=person["name"], active=True)
+                await self._storage.async_set_user(existing)
+            voters.append(existing)
+
+        return voters
+
     async def async_get_voters(self, active_only: bool = True) -> list[Voter]:
         """Return active voters by default, or the complete voter list."""
         voters = await self._storage.async_get_users()
