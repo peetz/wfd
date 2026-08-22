@@ -7,13 +7,7 @@ if TYPE_CHECKING:
     from .household import Household
     from .meal_library import MealLibrary
 
-from .errors import (
-    DuplicateMealError,
-    InvalidMealNameError,
-    MealNotFoundError,
-    VoterNotFoundError,
-    VoterUnavailableError,
-)
+from .errors import DuplicateMealError, InvalidMealNameError, MealNotFoundError, VoterNotFoundError, VoterUnavailableError
 
 DOMAIN = "wfd"
 ADD_MEAL = "add_meal"
@@ -32,7 +26,7 @@ def _raise_service_error(exc: Exception) -> Exception:
     return exc
 
 
-async def async_setup_services(hass: "HomeAssistant", meal_library: "MealLibrary", household: "Household") -> None:
+async def async_setup_services(hass: "HomeAssistant", meal_library: "MealLibrary", household: "Household" | None = None) -> None:
     """Register WFD meal and household management services."""
     async def add_meal(call: "ServiceCall") -> None:
         try:
@@ -58,6 +52,14 @@ async def async_setup_services(hass: "HomeAssistant", meal_library: "MealLibrary
         except Exception as exc:
             raise _raise_service_error(exc) from exc
 
+    hass.services.async_register(DOMAIN, ADD_MEAL, add_meal)
+    hass.services.async_register(DOMAIN, RENAME_MEAL, rename_meal)
+    hass.services.async_register(DOMAIN, ARCHIVE_MEAL, archive_meal)
+    hass.services.async_register(DOMAIN, RESTORE_MEAL, restore_meal)
+
+    if household is None:
+        return
+
     async def add_voter(call: "ServiceCall") -> None:
         try:
             await household.async_add_voter(call.data["person_id"])
@@ -76,10 +78,6 @@ async def async_setup_services(hass: "HomeAssistant", meal_library: "MealLibrary
         except Exception as exc:
             raise _raise_service_error(exc) from exc
 
-    hass.services.async_register(DOMAIN, ADD_MEAL, add_meal)
-    hass.services.async_register(DOMAIN, RENAME_MEAL, rename_meal)
-    hass.services.async_register(DOMAIN, ARCHIVE_MEAL, archive_meal)
-    hass.services.async_register(DOMAIN, RESTORE_MEAL, restore_meal)
     hass.services.async_register(DOMAIN, ADD_VOTER, add_voter)
     hass.services.async_register(DOMAIN, ARCHIVE_VOTER, archive_voter)
     hass.services.async_register(DOMAIN, RESTORE_VOTER, restore_voter)
