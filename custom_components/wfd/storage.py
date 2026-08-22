@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from typing import Any
-
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.storage import Store
+from typing import TYPE_CHECKING, Any
 
 from .models import Meal, RoundResult, User, Vote, VotingRound
 from .models.voting_round import VotingRoundStatus
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.storage import Store
 
 STORAGE_VERSION = 1
 STORAGE_KEY = "wfd.storage"
@@ -20,6 +21,8 @@ class WFDStorage:
 
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialise WFD persistent storage."""
+        from homeassistant.helpers.storage import Store
+
         self._store: Store[dict[str, Any]] = Store(
             hass,
             STORAGE_VERSION,
