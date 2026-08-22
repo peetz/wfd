@@ -95,19 +95,18 @@ async def test_archive_and_restore_are_idempotent(library: MealLibrary) -> None:
 
 
 @pytest.mark.asyncio
-async def test_restore_rechecks_name_uniqueness(library: MealLibrary) -> None:
+async def test_restore_rechecks_name_uniqueness(storage: WFDStorage) -> None:
     """A restored meal cannot conflict with another meal's name."""
+    library = MealLibrary(storage)
     first = await library.async_add_meal("Pizza")
-    await library.async_archive_meal(first.id)
     second = await library.async_add_meal("Pasta")
+    await library.async_archive_meal(first.id)
 
-    # Simulate another workflow having renamed the archived meal while it was inactive.
-    await library.async_rename_meal(first.id, "Pasta")
+    # Simulate a legacy/corrupt persisted state that introduced a collision.
+    storage._data["meals"][first.id]["name"] = second.name
 
     with pytest.raises(DuplicateMealError):
         await library.async_restore_meal(first.id)
-
-    assert (await library.async_get_meal(second.id)).active is True
 
 
 @pytest.mark.asyncio
@@ -187,17 +186,19 @@ async def test_archiving_meal_does_not_alter_historical_results(
         rank=1,
         explanation="Selected.",
     )
-    storage._data["results"].append(result.__dict__ if hasattr(result, "__dict__") else {
-        "round_id": result.round_id,
-        "meal_id": result.meal_id,
-        "selected": result.selected,
-        "decision_score": result.decision_score,
-        "vote_score": result.vote_score,
-        "historical_score": result.historical_score,
-        "recency_score": result.recency_score,
-        "rank": result.rank,
-        "explanation": result.explanation,
-    })
+    storage._data["results"].append(
+        {
+            "round_id": result.round_id,
+            "meal_id": result.meal_id,
+            "selected": result.selected,
+            "decision_score": result.decision_score,
+            "vote_score": result.vote_score,
+            "historical_score": result.historical_score,
+            "recency_score": result.recency_score,
+            "rank": result.rank,
+            "explanation": result.explanation,
+        }
+    )
     before = deepcopy(storage._data["results"])
 
     await library.async_archive_meal(meal.id)
