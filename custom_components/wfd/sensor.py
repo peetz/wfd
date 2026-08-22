@@ -2,16 +2,8 @@
 
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorEntity
 
-
-async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up WFD sensors."""
-    data = hass.data["wfd"][entry.entry_id]
-    async_add_entities([WFDMealLibrarySensor(data["meal_library"])])
-
-
-class WFDMealLibrarySensor(SensorEntity):
+class WFDMealLibrarySensor:
     """Expose the active WFD meal library."""
 
     _attr_name = "WFD Meal Library"
@@ -31,3 +23,9 @@ class WFDMealLibrarySensor(SensorEntity):
 
     async def async_update(self):
         self._meals = await self._meal_library.async_get_meals()
+
+
+async def async_setup_entry(hass, entry, async_add_entities):
+    """Set up WFD sensors."""
+    data = hass.data["wfd"][entry.entry_id]
+    async_add_entities([WFDMealLibrarySensor(data["meal_library"])])
