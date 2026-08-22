@@ -6,6 +6,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from .migrations import CURRENT_SCHEMA_VERSION, migrate
 from .models import Meal, RoundResult, User, Vote, VotingRound
 from .models.voting_round import VotingRoundStatus
 
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.storage import Store
 
-STORAGE_VERSION = 1
+STORAGE_VERSION = CURRENT_SCHEMA_VERSION
 STORAGE_KEY = "wfd.storage"
 
 
@@ -43,9 +44,13 @@ class WFDStorage:
         }
 
     async def async_load(self) -> None:
-        """Load persisted data, or initialise an empty store."""
+        """Load persisted data, migrating legacy data when required."""
         data = await self._store.async_load()
-        self._data = data or self._empty_data()
+        if data is None:
+            self._data = self._empty_data()
+            return
+
+        self._data = migrate(data, STORAGE_VERSION)
 
     async def async_save(self) -> None:
         """Persist the current data."""
@@ -65,9 +70,9 @@ class WFDStorage:
         """Create or update a voting round, protecting completed rounds."""
         existing = self._data["rounds"].get(voting_round.id)
         if existing and existing["status"] in {
-            VotingRoundStatus.CLOSED,
-            VotingRoundStatus.DECISION_GENERATED,
-            VotingRoundStatus.RESULTS_STORED,
+            VotingRoundStatus.CLOSED.value,
+            VotingRoundStatus.DECISION_GENERATED.value,
+            VotingRoundStatus.RESULTS_STORED.value,
         }:
             raise ValueError("Completed voting rounds are immutable")
 
