@@ -42,15 +42,19 @@ async def test_setup_entry_registers_wfd_runtime(monkeypatch):
     assert "wfd" in hass.data
     assert "storage" in hass.data["wfd"]["test"]
     assert "meal_library" in hass.data["wfd"]["test"]
+    assert "household" in hass.data["wfd"]["test"]
 
 
 @pytest.mark.asyncio
 async def test_unload_entry_removes_runtime():
-    """Unload removes runtime objects."""
+    """Unload stops household listener and removes runtime objects."""
+    household = MagicMock()
+    household.async_stop = AsyncMock()
     hass = MagicMock()
-    hass.data = {"wfd": {"test": {}}}
+    hass.data = {"wfd": {"test": {"household": household}}}
     entry = MagicMock()
     entry.entry_id = "test"
 
     assert await async_unload_entry(hass, entry) is True
+    household.async_stop.assert_awaited_once()
     assert "test" not in hass.data["wfd"]
