@@ -13,12 +13,15 @@ class WfdPanel extends HTMLElement {
   }
 
   render() {
+    const meals = this._hass?.states || {};
+
     this.innerHTML = `
       <ha-card header="What's For Dinner">
         <div style="padding:16px">
           <h2>Meal Library</h2>
           <p>Manage your household meals from Home Assistant.</p>
-          <ha-button raised disabled>Add meal</ha-button>
+          <ha-button raised>Add meal</ha-button>
+          <p style="margin-top:16px">Meal management actions will use WFD services.</p>
         </div>
       </ha-card>
     `;
