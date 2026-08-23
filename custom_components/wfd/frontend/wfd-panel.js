@@ -12,16 +12,28 @@ class WfdPanel extends HTMLElement {
     this.render();
   }
 
+  get meals() {
+    return this._hass?.states?.["sensor.wfd_meal_library"]?.attributes?.meals || [];
+  }
+
+  async call(action, name, extra = {}) {
+    await this._hass.callService("wfd", action, { name, ...extra });
+  }
+
   async addMeal() {
     const name = window.prompt("Meal name");
     if (!name) return;
-
-    await this._hass.callService("wfd", "add_meal", { name });
-    this.render();
+    await this.call("add_meal", name);
   }
 
-  get meals() {
-    return this._hass?.states?.["sensor.wfd_meal_library"]?.attributes?.meals || [];
+  async renameMeal(name) {
+    const newName = window.prompt("Rename meal", name);
+    if (!newName || newName === name) return;
+    await this.call("rename_meal", name, { new_name: newName });
+  }
+
+  async archiveMeal(name) {
+    await this.call("archive_meal", name);
   }
 
   render() {
@@ -38,7 +50,13 @@ class WfdPanel extends HTMLElement {
 
           <h3 style="margin-top:24px">Meals</h3>
           ${meals.length
-            ? `<ul>${meals.map((meal) => `<li>${typeof meal === "string" ? meal : meal.name}</li>`).join("")}</ul>`
+            ? `<ul>${meals.map((meal) => {
+                const name = typeof meal === "string" ? meal : meal.name;
+                return `<li>${name}
+                  <button data-action="rename" data-name="${name}">Edit</button>
+                  <button data-action="archive" data-name="${name}">Archive</button>
+                </li>`;
+              }).join("")}</ul>`
             : "<p>No meals available yet.</p>"}
 
           <h3 style="margin-top:24px">Archived meals</h3>
@@ -48,6 +66,15 @@ class WfdPanel extends HTMLElement {
     `;
 
     this.querySelector("#add")?.addEventListener("click", () => this.addMeal());
+
+    this.querySelectorAll("button[data-action]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const action = button.dataset.action;
+        const name = button.dataset.name;
+        if (action === "rename") await this.renameMeal(name);
+        if (action === "archive") await this.archiveMeal(name);
+      });
+    });
   }
 }
 
