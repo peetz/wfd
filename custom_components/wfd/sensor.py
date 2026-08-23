@@ -34,7 +34,16 @@ class WFDMealLibrarySensor(SensorEntity):
 
     @property
     def extra_state_attributes(self):
-        return {"meals": [meal.name for meal in self._meals]}
+        return {
+            "meals": [
+                {
+                    "id": meal.id,
+                    "name": meal.name,
+                    "active": meal.active,
+                }
+                for meal in self._meals
+            ]
+        }
 
     async def async_update(self):
         self._meals = await self._meal_library.async_get_meals()
