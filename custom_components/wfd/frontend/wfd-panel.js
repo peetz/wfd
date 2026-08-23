@@ -16,8 +16,8 @@ class WfdPanel extends HTMLElement {
     return this._hass?.states?.["sensor.wfd_meal_library"]?.attributes?.meals || [];
   }
 
-  async call(action, name) {
-    await this._hass.callService("wfd", action, { name });
+  async call(action, name, extra = {}) {
+    await this._hass.callService("wfd", action, { name, ...extra });
   }
 
   async addMeal() {
@@ -29,15 +29,11 @@ class WfdPanel extends HTMLElement {
   async renameMeal(name) {
     const newName = window.prompt("Rename meal", name);
     if (!newName || newName === name) return;
-    await this.call("rename_meal", name, newName);
+    await this.call("rename_meal", name, { new_name: newName });
   }
 
   async archiveMeal(name) {
     await this.call("archive_meal", name);
-  }
-
-  async restoreMeal(name) {
-    await this.call("restore_meal", name);
   }
 
   render() {
