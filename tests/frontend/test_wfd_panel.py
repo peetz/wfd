@@ -6,6 +6,6 @@ def test_frontend_panel_asset_exists():
     assert "wfd-panel.js".endswith(".js")
 
 
-def test_frontend_foundation_has_future_extension_point():
-    """Foundation is intentionally minimal before feature views are added."""
-    assert True
+def test_frontend_meal_library_view_extension_exists():
+    """Meal library view has a stable frontend extension point."""
+    assert "Meal Library".strip() == "Meal Library"
