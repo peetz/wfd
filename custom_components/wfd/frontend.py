@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from homeassistant.components.http import StaticPathConfig
-
 
 FRONTEND_PATH = "/wfd/frontend"
 PANEL_URL = "wfd"
@@ -19,6 +17,8 @@ async def async_register_frontend(hass) -> None:
     The panel intentionally contains no business logic. It is a presentation
     layer over WFD entities and services.
     """
+    from homeassistant.components.http import StaticPathConfig
+
     frontend_file = Path(__file__).parent / "frontend" / "wfd-panel.js"
 
     await hass.http.async_register_static_paths(
