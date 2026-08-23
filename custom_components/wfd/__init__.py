@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 
+from .frontend import async_register_frontend
 from .household import Household
 from .meal_library import MealLibrary
 from .services import async_setup_services
@@ -27,6 +28,7 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
     }
 
     await async_setup_services(hass, meal_library, household)
+    async_register_frontend(hass)
 
     forward_setups = getattr(hass.config_entries, "async_forward_entry_setups", None)
     if inspect.iscoroutinefunction(forward_setups):
