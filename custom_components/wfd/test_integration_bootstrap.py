@@ -36,13 +36,19 @@ async def test_setup_entry_registers_wfd_runtime(monkeypatch):
 
     http_module = types.ModuleType("homeassistant.components.http")
     http_module.StaticPathConfig = MockStaticPathConfig
+
+    frontend_module = types.ModuleType("homeassistant.components.frontend")
+    frontend_module.async_register_built_in_panel = MagicMock()
+
     components_module = types.ModuleType("homeassistant.components")
     components_module.http = http_module
+    components_module.frontend = frontend_module
 
     monkeypatch.setitem(sys.modules, "homeassistant.helpers", helpers_module)
     monkeypatch.setitem(sys.modules, "homeassistant.helpers.storage", storage_module)
     monkeypatch.setitem(sys.modules, "homeassistant.components", components_module)
     monkeypatch.setitem(sys.modules, "homeassistant.components.http", http_module)
+    monkeypatch.setitem(sys.modules, "homeassistant.components.frontend", frontend_module)
 
     hass = MagicMock()
     hass.data = {}
