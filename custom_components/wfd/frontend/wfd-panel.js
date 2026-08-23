@@ -1,8 +1,5 @@
 /*
- * What's For Dinner frontend panel foundation.
- *
- * Minimal custom panel bootstrap. Future issues will add views,
- * services and Lovelace widgets using this shared entry point.
+ * What's For Dinner meal library frontend.
  */
 
 class WfdPanel extends HTMLElement {
@@ -19,7 +16,9 @@ class WfdPanel extends HTMLElement {
     this.innerHTML = `
       <ha-card header="What's For Dinner">
         <div style="padding:16px">
-          Frontend foundation loaded.
+          <h2>Meal Library</h2>
+          <p>Manage your household meals from Home Assistant.</p>
+          <ha-button raised disabled>Add meal</ha-button>
         </div>
       </ha-card>
     `;
