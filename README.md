@@ -4,42 +4,58 @@ A Home Assistant integration to help families decide what's for dinner by combin
 
 ## Overview
 
-WFD is designed to answer a simple question:
+WFD answers a simple question:
 
 > What's for dinner?
 
 It provides the foundations for a family meal decision system inside Home Assistant.
 
-Current capabilities:
+## Current capabilities
 
 - Meal library management
 - Persistent meal storage
-- Household voters sourced from Home Assistant People
+- Home Assistant People integration for household voters
 - Voter archive and restore support
-- WFD frontend foundation
+- Custom Home Assistant frontend panel foundation
 
-Planned capabilities:
+## Planned capabilities
 
+- Meal Library UI
+- Household management UI
 - Voting rounds
-- Meal selection workflows
+- Meal voting workflows
 - Results and history
 - Meal recommendations based on household preferences
-- Lovelace widgets for dashboard integration
+- Optional Lovelace widgets
 
-## Architecture
+## Frontend architecture
 
-WFD keeps Home Assistant as the source of truth for household identity:
+WFD uses an application-style custom Home Assistant panel as the primary user experience.
 
 ```
                  WFD Core
                     |
         +-----------+-----------+
         |                       |
-   WFD Panel              Lovelace Widgets
+   Custom Panel          Lovelace Widgets
    (primary UX)           (future option)
 ```
 
-Business logic remains inside the integration. The frontend provides an application-style experience while keeping future dashboard components possible.
+The custom panel provides a full app experience while Lovelace widgets remain a future option for dashboard users who want WFD data embedded elsewhere.
+
+## Development workflow
+
+Changes are developed incrementally through GitHub issues and pull requests.
+
+Standard workflow:
+
+1. Review the issue and confirm scope.
+2. Create a feature branch.
+3. Implement the change.
+4. Add or update tests.
+5. Open a pull request.
+6. Merge after CI passes.
+7. Update documentation and release notes.
 
 ## Installation
 
@@ -66,9 +82,15 @@ Run tests:
 python -m pytest
 ```
 
-## Project Status
+## Project status
 
-WFD is being developed incrementally with each feature tracked as a GitHub milestone/issue.
+WFD is being developed incrementally with features tracked through GitHub milestones and issues.
+
+See:
+
+- `docs/` for project documentation
+- GitHub Issues for planned work
+- Pull Requests for completed changes
 
 ## License
 
