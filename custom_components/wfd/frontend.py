@@ -11,7 +11,7 @@ PANEL_TITLE = "What's For Dinner"
 PANEL_ICON = "mdi:silverware-fork-knife"
 
 
-def async_register_frontend(hass) -> None:
+async def async_register_frontend(hass) -> None:
     """Register the WFD sidebar panel.
 
     The panel intentionally contains no business logic. It is a presentation
@@ -19,10 +19,14 @@ def async_register_frontend(hass) -> None:
     """
     frontend_file = Path(__file__).parent / "frontend" / "wfd-panel.js"
 
-    hass.http.register_static_path(
-        FRONTEND_PATH,
-        str(frontend_file.parent),
-        cache_headers=False,
+    await hass.http.async_register_static_paths(
+        [
+            {
+                "url_path": FRONTEND_PATH,
+                "path": str(frontend_file.parent),
+                "cache_headers": False,
+            }
+        ]
     )
 
     hass.components.frontend.async_register_built_in_panel(
