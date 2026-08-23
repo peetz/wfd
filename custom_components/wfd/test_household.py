@@ -113,3 +113,28 @@ async def test_unknown_person_cannot_be_added(storage: WFDStorage) -> None:
     service = household(storage)
     with pytest.raises(Exception, match="Home Assistant Person not found"):
         await service.async_add_voter("person.unknown")
+
+
+@pytest.mark.asyncio
+async def test_household_sensor_contract_data(storage: WFDStorage) -> None:
+    service = household(storage)
+    await service.async_sync()
+    await service.async_archive_voter("person.clare")
+
+    voters = await service.async_get_voters(active_only=False)
+    available = service.async_get_available_persons()
+
+    assert sorted(
+        [
+            {"id": voter.id, "name": voter.name, "active": voter.active}
+            for voter in voters
+        ],
+        key=lambda voter: voter["id"],
+    ) == [
+        {"id": "person.clare", "name": "Clare", "active": False},
+        {"id": "person.steve", "name": "Steve", "active": True},
+    ]
+    assert available == [
+        {"id": "person.clare", "name": "Clare"},
+        {"id": "person.steve", "name": "Steve"},
+    ]
