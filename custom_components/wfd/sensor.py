@@ -19,7 +19,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class WFDMealLibrarySensor(SensorEntity):
-    """Expose the active WFD meal library."""
+    """Expose the WFD meal library including archived meals."""
 
     _attr_name = "WFD Meal Library"
 
@@ -46,7 +46,7 @@ class WFDMealLibrarySensor(SensorEntity):
         }
 
     async def async_update(self):
-        self._meals = await self._meal_library.async_get_meals()
+        self._meals = await self._meal_library.async_get_meals(active_only=False)
 
 
 class WFDHouseholdSensor(SensorEntity):
