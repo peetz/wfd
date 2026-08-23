@@ -34,6 +34,7 @@ async def test_setup_entry_registers_wfd_runtime(monkeypatch):
     hass = MagicMock()
     hass.data = {}
     hass.config_entries = MagicMock()
+    hass.http.async_register_static_paths = AsyncMock()
     entry = MagicMock()
     entry.entry_id = "test"
 
