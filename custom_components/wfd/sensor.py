@@ -50,7 +50,7 @@ class WFDMealLibrarySensor(SensorEntity):
 
 
 class WFDHouseholdSensor(SensorEntity):
-    """Expose active and archived WFD household voters."""
+    """Expose WFD household voters and available Home Assistant Persons."""
 
     _attr_name = "WFD Household"
 
@@ -58,6 +58,7 @@ class WFDHouseholdSensor(SensorEntity):
         self._household = household
         self._attr_unique_id = "wfd_household"
         self._voters = []
+        self._available_persons = []
 
     @property
     def native_value(self):
@@ -66,9 +67,17 @@ class WFDHouseholdSensor(SensorEntity):
     @property
     def extra_state_attributes(self):
         return {
-            "active": [voter.name for voter in self._voters if voter.active],
-            "archived": [voter.name for voter in self._voters if not voter.active],
+            "voters": [
+                {
+                    "id": voter.id,
+                    "name": voter.name,
+                    "active": voter.active,
+                }
+                for voter in self._voters
+            ],
+            "available_persons": self._available_persons,
         }
 
     async def async_update(self):
         self._voters = await self._household.async_get_voters(active_only=False)
+        self._available_persons = self._household.async_get_available_persons()
