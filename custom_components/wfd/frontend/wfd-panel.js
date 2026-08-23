@@ -36,25 +36,35 @@ class WfdPanel extends HTMLElement {
     await this.call("archive_meal", { meal_id: meal.id });
   }
 
+  async restoreMeal(meal) {
+    await this.call("restore_meal", { meal_id: meal.id });
+  }
+
   render() {
     if (!this._hass) return;
 
     const meals = this.meals;
+    const active = meals.filter((meal) => meal.active !== false);
+    const archived = meals.filter((meal) => meal.active === false);
+
+    const rows = (items, action) => items.map((meal) => `
+      <li>
+        ${meal.name}
+        <button data-action="${action}" data-id="${meal.id}">${action}</button>
+      </li>
+    `).join("");
 
     this.innerHTML = `
       <ha-card header="What's For Dinner">
         <div style="padding:16px">
           <h2>Meal Library</h2>
-          <p>Manage your household meals from Home Assistant.</p>
           <ha-button id="add" raised>Add meal</ha-button>
 
-          <h3 style="margin-top:24px">Meals</h3>
-          ${meals.length
-            ? `<ul>${meals.map((meal) => `<li>${meal.name}
-                <button data-action="rename" data-id="${meal.id}">Edit</button>
-                <button data-action="archive" data-id="${meal.id}">Archive</button>
-              </li>`).join("")}</ul>`
-            : "<p>No meals available yet.</p>"}
+          <h3>Active Meals</h3>
+          ${active.length ? `<ul>${rows(active, "archive")}</ul>` : "<p>No active meals.</p>"}
+
+          <h3>Archived Meals</h3>
+          ${archived.length ? `<ul>${rows(archived, "restore")}</ul>` : "<p>No archived meals.</p>"}
         </div>
       </ha-card>
     `;
@@ -65,8 +75,8 @@ class WfdPanel extends HTMLElement {
       button.addEventListener("click", async () => {
         const meal = meals.find((item) => item.id === button.dataset.id);
         if (!meal) return;
-        if (button.dataset.action === "rename") await this.renameMeal(meal);
         if (button.dataset.action === "archive") await this.archiveMeal(meal);
+        if (button.dataset.action === "restore") await this.restoreMeal(meal);
       });
     });
   }
