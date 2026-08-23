@@ -116,12 +116,11 @@ async def test_unknown_person_cannot_be_added(storage: WFDStorage) -> None:
 
 
 @pytest.mark.asyncio
-async def test_household_sensor_exposes_rich_voter_objects(storage: WFDStorage) -> None:
+async def test_household_sensor_contract_data(storage: WFDStorage) -> None:
     service = household(storage)
-    await service.async_add_voter("person.steve")
-    await service.async_archive_voter("person.clare") if await service.async_get_voters(active_only=False) else None
+    await service.async_sync()
+    await service.async_archive_voter("person.clare")
 
-    # Sensor test uses the same household state contract directly.
     voters = await service.async_get_voters(active_only=False)
     available = service.async_get_available_persons()
 
@@ -129,7 +128,8 @@ async def test_household_sensor_exposes_rich_voter_objects(storage: WFDStorage) 
         {"id": voter.id, "name": voter.name, "active": voter.active}
         for voter in voters
     ] == [
-        {"id": "person.steve", "name": "Steve", "active": True}
+        {"id": "person.steve", "name": "Steve", "active": True},
+        {"id": "person.clare", "name": "Clare", "active": False},
     ]
     assert available == [
         {"id": "person.clare", "name": "Clare"},
