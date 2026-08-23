@@ -17,15 +17,17 @@ async def async_register_frontend(hass) -> None:
     The panel intentionally contains no business logic. It is a presentation
     layer over WFD entities and services.
     """
+    from homeassistant.components.http import StaticPathConfig
+
     frontend_file = Path(__file__).parent / "frontend" / "wfd-panel.js"
 
     await hass.http.async_register_static_paths(
         [
-            {
-                "url_path": FRONTEND_PATH,
-                "path": str(frontend_file.parent),
-                "cache_headers": False,
-            }
+            StaticPathConfig(
+                url_path=FRONTEND_PATH,
+                path=str(frontend_file.parent),
+                cache_headers=False,
+            )
         ]
     )
 
