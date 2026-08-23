@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from homeassistant.components.http import StaticPathConfig
+
 
 FRONTEND_PATH = "/wfd/frontend"
 PANEL_URL = "wfd"
@@ -21,11 +23,11 @@ async def async_register_frontend(hass) -> None:
 
     await hass.http.async_register_static_paths(
         [
-            {
-                "url_path": FRONTEND_PATH,
-                "path": str(frontend_file.parent),
-                "cache_headers": False,
-            }
+            StaticPathConfig(
+                url_path=FRONTEND_PATH,
+                path=str(frontend_file.parent),
+                cache_headers=False,
+            )
         ]
     )
 
