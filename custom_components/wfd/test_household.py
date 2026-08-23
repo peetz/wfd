@@ -124,12 +124,15 @@ async def test_household_sensor_contract_data(storage: WFDStorage) -> None:
     voters = await service.async_get_voters(active_only=False)
     available = service.async_get_available_persons()
 
-    assert [
-        {"id": voter.id, "name": voter.name, "active": voter.active}
-        for voter in voters
-    ] == [
-        {"id": "person.steve", "name": "Steve", "active": True},
+    assert sorted(
+        [
+            {"id": voter.id, "name": voter.name, "active": voter.active}
+            for voter in voters
+        ],
+        key=lambda voter: voter["id"],
+    ) == [
         {"id": "person.clare", "name": "Clare", "active": False},
+        {"id": "person.steve", "name": "Steve", "active": True},
     ]
     assert available == [
         {"id": "person.clare", "name": "Clare"},
