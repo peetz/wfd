@@ -16,6 +16,7 @@ Current capabilities:
 - Persistent meal storage
 - Household voters sourced from Home Assistant People
 - Voter archive and restore support
+- WFD frontend foundation
 
 Planned capabilities:
 
@@ -23,23 +24,22 @@ Planned capabilities:
 - Meal selection workflows
 - Results and history
 - Meal recommendations based on household preferences
+- Lovelace widgets for dashboard integration
 
 ## Architecture
 
 WFD keeps Home Assistant as the source of truth for household identity:
 
 ```
-Home Assistant People
-        |
-        v
-    WFD Voters
-        |
-        v
- Voting Rounds
-        |
-        v
- Results & History
+                 WFD Core
+                    |
+        +-----------+-----------+
+        |                       |
+   WFD Panel              Lovelace Widgets
+   (primary UX)           (future option)
 ```
+
+Business logic remains inside the integration. The frontend provides an application-style experience while keeping future dashboard components possible.
 
 ## Installation
 

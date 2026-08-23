@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) and versi
 
 ### Added
 
+- WFD frontend foundation
+  - Home Assistant panel foundation
+  - Shared frontend architecture
+  - Foundation for future meal, household, voting and results pages
+  - Future support path for Lovelace widgets
+
 ### Changed
 
 ### Fixed
