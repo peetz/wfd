@@ -9,6 +9,7 @@ FRONTEND_PATH = "/wfd/frontend"
 PANEL_URL = "wfd"
 PANEL_TITLE = "What's For Dinner"
 PANEL_ICON = "mdi:silverware-fork-knife"
+PANEL_MODULE_URL = f"{FRONTEND_PATH}/wfd-panel.js"
 
 
 async def async_register_frontend(hass) -> None:
@@ -41,6 +42,7 @@ async def async_register_frontend(hass) -> None:
         config={
             "_panel_custom": {
                 "name": "wfd-panel",
+                "module_url": PANEL_MODULE_URL,
                 "embed_iframe": False,
             }
         },
