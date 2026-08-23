@@ -20,8 +20,14 @@ class WfdPanel extends HTMLElement {
     this.render();
   }
 
+  get meals() {
+    return this._hass?.states?.["sensor.wfd_meal_library"]?.attributes?.meals || [];
+  }
+
   render() {
     if (!this._hass) return;
+
+    const meals = this.meals;
 
     this.innerHTML = `
       <ha-card header="What's For Dinner">
@@ -31,7 +37,9 @@ class WfdPanel extends HTMLElement {
           <ha-button id="add" raised>Add meal</ha-button>
 
           <h3 style="margin-top:24px">Meals</h3>
-          <p>Meal actions are connected to WFD services.</p>
+          ${meals.length
+            ? `<ul>${meals.map((meal) => `<li>${typeof meal === "string" ? meal : meal.name}</li>`).join("")}</ul>`
+            : "<p>No meals available yet.</p>"}
 
           <h3 style="margin-top:24px">Archived meals</h3>
           <p>Restore archived meals from this view.</p>
