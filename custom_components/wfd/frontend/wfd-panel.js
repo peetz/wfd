@@ -47,10 +47,10 @@ class WfdPanel extends HTMLElement {
     const active = meals.filter((meal) => meal.active !== false);
     const archived = meals.filter((meal) => meal.active === false);
 
-    const rows = (items, action) => items.map((meal) => `
+    const rows = (items, actions) => items.map((meal) => `
       <li>
         ${meal.name}
-        <button data-action="${action}" data-id="${meal.id}">${action}</button>
+        ${actions.map((action) => `<button data-action="${action}" data-id="${meal.id}">${action}</button>`).join("")}
       </li>
     `).join("");
 
@@ -61,10 +61,10 @@ class WfdPanel extends HTMLElement {
           <ha-button id="add" raised>Add meal</ha-button>
 
           <h3>Active Meals</h3>
-          ${active.length ? `<ul>${rows(active, "archive")}</ul>` : "<p>No active meals.</p>"}
+          ${active.length ? `<ul>${rows(active, ["rename", "archive"])}</ul>` : "<p>No active meals.</p>"}
 
           <h3>Archived Meals</h3>
-          ${archived.length ? `<ul>${rows(archived, "restore")}</ul>` : "<p>No archived meals.</p>"}
+          ${archived.length ? `<ul>${rows(archived, ["restore"])}</ul>` : "<p>No archived meals.</p>"}
         </div>
       </ha-card>
     `;
@@ -75,6 +75,7 @@ class WfdPanel extends HTMLElement {
       button.addEventListener("click", async () => {
         const meal = meals.find((item) => item.id === button.dataset.id);
         if (!meal) return;
+        if (button.dataset.action === "rename") await this.renameMeal(meal);
         if (button.dataset.action === "archive") await this.archiveMeal(meal);
         if (button.dataset.action === "restore") await this.restoreMeal(meal);
       });
