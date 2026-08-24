@@ -1,10 +1,11 @@
 """Tests for the voting round workflow."""
 
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from .models import Meal, User
+from .models import Meal, User, Vote, VotingRound
 from .models.voting_round import VotingRoundStatus
 from .voting_manager import VotingManager, VotingError
 
@@ -17,6 +18,10 @@ def manager():
     storage.async_get_voting_round = AsyncMock()
     storage.async_has_votes = AsyncMock()
     storage.async_add_vote = AsyncMock()
+    storage.async_get_votes = AsyncMock()
+    storage.async_get_submitted_voter_count = AsyncMock()
+    storage.async_mark_round_results_stored = AsyncMock()
+    storage.async_add_result = AsyncMock()
     meal_library = MagicMock()
     meal_library.async_get_meals = AsyncMock()
     household = MagicMock()
@@ -61,3 +66,44 @@ async def test_public_state_exposes_only_selected_meals_after_completion(manager
 
     assert state["status"] == "results_stored"
     assert state["selected_meals"] == ["meal-1"]
+
+@pytest.mark.asyncio
+async def test_close_round_uses_decision_engine_and_persists_all_results(manager):
+    voting, storage, meals, household = manager
+    created = datetime.now(UTC)
+    current = VotingRound(
+        id="current",
+        number=2,
+        created_at=created,
+        voting_deadline=created + timedelta(minutes=10),
+        meals_required=1,
+        voter_ids=("u1", "u2"),
+        status=VotingRoundStatus.ACTIVE,
+    )
+    previous = VotingRound(
+        id="previous",
+        number=1,
+        created_at=created - timedelta(days=1),
+        voting_deadline=created,
+        meals_required=1,
+        voter_ids=("u1", "u2"),
+        closed_at=created,
+        status=VotingRoundStatus.RESULTS_STORED,
+    )
+    storage.async_get_voting_round.return_value = current
+    storage.async_get_submitted_voter_count.return_value = 2
+    storage.async_get_votes.side_effect = [
+        [Vote("current", "u1", "meal-2")],
+        [Vote("previous", "u1", "meal-1")],
+    ]
+    storage.async_get_voting_rounds.return_value = [previous, current]
+    meals.async_get_meals.return_value = [
+        Meal("meal-1", "Pizza"),
+        Meal("meal-2", "Pasta"),
+    ]
+
+    results = await voting.async_close_round("current", now=created)
+
+    assert [result.meal_id for result in results] == ["meal-2", "meal-1"]
+    assert storage.async_add_result.await_count == 2
+    storage.async_mark_round_results_stored.assert_awaited_once()
