@@ -63,8 +63,7 @@ class WfdPanel extends HTMLElement {
   }
 
   get isAdmin() {
-    const voter = this.currentVoter;
-    return Boolean(voter && (voter.id === "person.steve" || voter.name?.toLowerCase() === "steve"));
+    return this._hass?.user?.is_admin === true;
   }
 
   escape(value) {
