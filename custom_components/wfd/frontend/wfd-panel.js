@@ -157,9 +157,24 @@ class WfdPanel extends HTMLElement {
       <section class="section"><div class="chosen-grid">${meals.map((meal) => `<div class="chosen-meal">${this.escape(meal.name)}</div>`).join("") || '<p class="muted">No selected meals were recorded.</p>'}</div></section>`;
   }
 
+  renderStartVoting() {
+    const activeMeals = this.meals.filter((meal) => meal.active !== false);
+    return `
+      <section class="voting-hero"><div><p class="eyebrow">Admin controls</p><h2>Start a voting round</h2>
+        <p class="muted">Everyone will choose privately from the active meal list.</p></div><span class="status">Ready</span></section>
+      ${this._notice ? `<div class="notice">${this.escape(this._notice)}</div>` : ""}
+      <section class="section"><label class="field"><span>Meals each person chooses</span>
+        <input id="meals-required" type="number" min="1" max="${activeMeals.length || 1}" step="1" value="${this._draftMealsRequired}">
+      </label><button class="primary" data-action="start-voting" ${this._busy.has("start-voting") ? "disabled" : ""}>
+        ${this._busy.has("start-voting") ? "Starting..." : "Start voting round"}</button></section>`;
+  }
+
   renderVoting() {
     const voting = this.voting;
-    if (voting.status === "results_stored") return this.renderResults();
+    if (voting.status === "results_stored") {
+      const results = this.renderResults();
+      return this.isAdmin ? `${results}${this.renderStartVoting()}` : results;
+    }
     const activeMeals = this.meals.filter((meal) => meal.active !== false);
     const voter = this.currentVoter;
     const activeRound = Boolean(voting.round_id);
@@ -168,14 +183,7 @@ class WfdPanel extends HTMLElement {
         return `<section class="voting-hero"><div><p class="eyebrow">Voting</p><h2>No round is open</h2>
           <p class="muted">The WFD administrator will start the next round.</p></div><span class="status">Waiting</span></section>`;
       }
-      return `
-        <section class="voting-hero"><div><p class="eyebrow">Admin controls</p><h2>Start a voting round</h2>
-          <p class="muted">Everyone will choose privately from the active meal list.</p></div><span class="status">Ready</span></section>
-        ${this._notice ? `<div class="notice">${this.escape(this._notice)}</div>` : ""}
-        <section class="section"><label class="field"><span>Meals each person chooses</span>
-          <input id="meals-required" type="number" min="1" max="${activeMeals.length || 1}" step="1" value="${this._draftMealsRequired}">
-        </label><button class="primary" data-action="start-voting" ${this._busy.has("start-voting") ? "disabled" : ""}>
-          ${this._busy.has("start-voting") ? "Starting..." : "Start voting round"}</button></section>`;
+      return this.renderStartVoting();
     }
     if (!voter) {
       return `<section class="voting-hero"><div><p class="eyebrow">Voting</p><h2>Person link needed</h2>
