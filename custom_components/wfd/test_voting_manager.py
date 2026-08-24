@@ -48,3 +48,16 @@ async def test_vote_is_private_immutable_and_validated(manager):
     storage.async_has_votes.return_value = True
     with pytest.raises(VotingError, match="changed"):
         await voting.async_submit_vote("r1", "u1", ["m1", "m2"])
+
+
+@pytest.mark.asyncio
+async def test_public_state_exposes_only_selected_meals_after_completion(manager):
+    voting, storage, _, _ = manager
+    completed = MagicMock(status=VotingRoundStatus.RESULTS_STORED, id="round-1", meals_required=1)
+    storage.async_get_voting_rounds.return_value = [completed]
+    storage.async_get_results = AsyncMock(return_value=[MagicMock(meal_id="meal-1", selected=True), MagicMock(meal_id="meal-2", selected=False)])
+
+    state = await voting.async_get_public_state()
+
+    assert state["status"] == "results_stored"
+    assert state["selected_meals"] == ["meal-1"]
