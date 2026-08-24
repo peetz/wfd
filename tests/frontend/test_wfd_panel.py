@@ -26,6 +26,8 @@ def test_frontend_has_role_based_voting_and_archive_hooks():
     assert "get isAdmin()" in content
     assert 'action === "restore"' in content
     assert "Already voted" in content
+    assert "renderStartVoting()" in content
+    assert 'voting.status === "results_stored"' in content
 
 def test_frontend_signature_avoids_unrelated_refresh_renders():
     """The panel tracks only relevant WFD state changes."""
