@@ -30,6 +30,11 @@ async def async_setup_services(hass: "HomeAssistant", meal_library, household=No
         except Exception as exc:
             raise _raise_service_error(exc) from exc
 
+    async def require_admin(call):
+        from homeassistant.exceptions import HomeAssistantError
+        if household is None or not await household.async_is_admin_user(getattr(call.context, "user_id", None)):
+            raise HomeAssistantError("Only the designated WFD administrator can manage voting rounds")
+
     async def add_meal(call):
         await run(meal_library.async_add_meal, call.data["name"])
 
@@ -62,12 +67,18 @@ async def async_setup_services(hass: "HomeAssistant", meal_library, household=No
         return
 
     async def start_voting(call):
+        await require_admin(call)
         await run(voting.async_create_round, call.data["meals_required"], call.data.get("deadline_minutes", 1440))
 
     async def submit_vote(call):
-        await run(voting.async_submit_vote, call.data["round_id"], call.data["user_id"], call.data["meal_ids"])
+        voter = await household.async_get_voter_for_user(getattr(call.context, "user_id", None))
+        if voter is None:
+            from homeassistant.exceptions import HomeAssistantError
+            raise HomeAssistantError("Your Home Assistant user is not linked to an active WFD Person")
+        await run(voting.async_submit_vote, call.data["round_id"], voter.id, call.data["meal_ids"])
 
     async def close_voting(call):
+        await require_admin(call)
         await run(voting.async_close_round, call.data["round_id"])
 
     for name, handler in ((START_VOTING, start_voting), (SUBMIT_VOTE, submit_vote), (CLOSE_VOTING, close_voting)):

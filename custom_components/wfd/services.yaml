@@ -106,11 +106,6 @@ submit_vote:
       required: true
       selector:
         text
-    user_id:
-      name: Voter ID
-      required: true
-      selector:
-        text
     meal_ids:
       name: Meal IDs
       required: true
