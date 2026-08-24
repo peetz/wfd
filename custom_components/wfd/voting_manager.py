@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -105,10 +106,45 @@ class VotingManager:
         latest = rounds[-1] if rounds else None
         if latest is not None and latest.status is VotingRoundStatus.RESULTS_STORED:
             results = await self._storage.async_get_results(latest.id)
+            votes = await self._storage.async_get_votes(latest.id)
+            vote_counts = Counter(vote.meal_id for vote in votes)
+            current_score_groups = Counter(result.vote_score for result in results)
+            historical_groups = {}
+            for result in results:
+                historical_groups.setdefault(result.vote_score, []).append(result)
+            public_results = []
+            for result in results:
+                tie_group = historical_groups[result.vote_score]
+                tiebreak_label = None
+                tiebreak_score = None
+                if len(tie_group) > 1:
+                    historical_scores = {item.historical_score for item in tie_group}
+                    recency_scores = {item.recency_score for item in tie_group}
+                    if len(historical_scores) > 1:
+                        tiebreak_label = "Historical score"
+                        tiebreak_score = result.historical_score
+                    elif len(recency_scores) > 1:
+                        tiebreak_label = "Recency score"
+                        tiebreak_score = result.recency_score
+                public_results.append({
+                    "meal_id": result.meal_id,
+                    "selected": result.selected,
+                    "rank": result.rank,
+                    "votes_received": vote_counts[result.meal_id],
+                    "voter_count": latest.voter_count,
+                    "vote_score": result.vote_score,
+                    "historical_score": result.historical_score,
+                    "recency_score": result.recency_score,
+                    "decision_score": result.decision_score,
+                    "tiebreak_label": tiebreak_label,
+                    "tiebreak_score": tiebreak_score,
+                    "explanation": result.explanation,
+                })
             return {
                 "status": latest.status.value,
                 "round_id": latest.id,
                 "selected_meals": [result.meal_id for result in results if result.selected],
+                "results": public_results,
                 "meals_required": latest.meals_required,
             }
         return {"status": "idle", "round_id": None, "submitted": 0, "voters": 0, "meals_required": 0}
