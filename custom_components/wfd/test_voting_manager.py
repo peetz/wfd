@@ -14,6 +14,7 @@ from .voting_manager import VotingManager, VotingError
 def manager():
     storage = MagicMock()
     storage.async_get_voting_rounds = AsyncMock()
+    storage.async_get_votes = AsyncMock(return_value=[])
     storage.async_set_voting_round = AsyncMock()
     storage.async_get_voting_round = AsyncMock()
     storage.async_has_votes = AsyncMock()
@@ -60,12 +61,35 @@ async def test_public_state_exposes_only_selected_meals_after_completion(manager
     voting, storage, _, _ = manager
     completed = MagicMock(status=VotingRoundStatus.RESULTS_STORED, id="round-1", meals_required=1)
     storage.async_get_voting_rounds.return_value = [completed]
-    storage.async_get_results = AsyncMock(return_value=[MagicMock(meal_id="meal-1", selected=True), MagicMock(meal_id="meal-2", selected=False)])
+    storage.async_get_results = AsyncMock(return_value=[
+        MagicMock(
+            meal_id="meal-1",
+            selected=True,
+            rank=1,
+            vote_score=1.0,
+            historical_score=0.5,
+            recency_score=0.0,
+            decision_score=1.5,
+            explanation="Selected.",
+        ),
+        MagicMock(
+            meal_id="meal-2",
+            selected=False,
+            rank=2,
+            vote_score=0.0,
+            historical_score=0.0,
+            recency_score=0.0,
+            decision_score=0.0,
+            explanation="Not selected.",
+        ),
+    ])
 
     state = await voting.async_get_public_state()
 
     assert state["status"] == "results_stored"
     assert state["selected_meals"] == ["meal-1"]
+    assert state["results"][0]["votes_received"] == 0
+    assert state["results"][0]["voter_count"] == completed.voter_count
 
 @pytest.mark.asyncio
 async def test_close_round_uses_decision_engine_and_persists_all_results(manager):
