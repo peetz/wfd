@@ -11,6 +11,7 @@ class WfdPanel extends HTMLElement {
     this._draftMealsRequired = 1;
     this._notice = "";
     this._formInteraction = false;
+    this._lastSignature = "";
     this.addEventListener("focusin", (event) => {
       if (["SELECT", "INPUT", "TEXTAREA"].includes(event.target.tagName)) this._formInteraction = true;
     });
@@ -28,7 +29,19 @@ class WfdPanel extends HTMLElement {
     this._hass = hass;
     const active = this.ownerDocument?.activeElement;
     const editing = active && this.contains(active) && ["SELECT", "INPUT", "TEXTAREA"].includes(active.tagName);
-    if (!this._formInteraction && !editing) this.render();
+    const signature = this.viewSignature();
+    if (!this._formInteraction && !editing && signature !== this._lastSignature) this.render();
+  }
+
+  viewSignature() {
+    const ids = ["sensor.wfd_meal_library", "sensor.wfd_household", "sensor.wfd_voting"];
+    return JSON.stringify({
+      user: this._hass?.user?.id || "",
+      states: ids.map((id) => {
+        const state = this.state(id);
+        return [id, state?.state || "", state?.last_changed || "", state?.last_updated || ""];
+      }),
+    });
   }
 
   connectedCallback() { this.render(); }
@@ -198,6 +211,7 @@ class WfdPanel extends HTMLElement {
 
   render() {
     if (!this._hass) return;
+    this._lastSignature = this.viewSignature();
     if (!this.isAdmin && this._activeTab !== "voting") this._activeTab = "voting";
     const tabs = this.isAdmin ? ["meals", "household", "voting"] : ["voting"];
     const body = this._activeTab === "meals" && this.isAdmin ? this.renderMeals() :
