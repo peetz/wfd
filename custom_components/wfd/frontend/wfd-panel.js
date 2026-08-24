@@ -10,6 +10,23 @@ class WfdPanel extends HTMLElement {
     this._draftMealsRequired = 1;
     this._draftVoterId = "";
     this._notice = "";
+    this._formInteraction = false;
+    this.addEventListener("focusin", (event) => {
+      if (["SELECT", "INPUT", "TEXTAREA"].includes(event.target.tagName)) {
+        this._formInteraction = true;
+      }
+    });
+    this.addEventListener("focusout", (event) => {
+      if (["SELECT", "INPUT", "TEXTAREA"].includes(event.target.tagName)) {
+        window.setTimeout(() => {
+          const active = this.ownerDocument?.activeElement;
+          this._formInteraction = Boolean(
+            active && this.contains(active) &&
+            ["SELECT", "INPUT", "TEXTAREA"].includes(active.tagName)
+          );
+        }, 500);
+      }
+    });
   }
 
   set hass(hass) {
@@ -17,7 +34,7 @@ class WfdPanel extends HTMLElement {
     const active = this.ownerDocument?.activeElement;
     const editing = active && this.contains(active) &&
       ["SELECT", "INPUT", "TEXTAREA"].includes(active.tagName);
-    if (!editing) this.render();
+    if (!this._formInteraction && !editing) this.render();
   }
 
   connectedCallback() {
