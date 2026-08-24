@@ -150,11 +150,24 @@ class WfdPanel extends HTMLElement {
 
   renderResults() {
     const selected = new Set(this.voting.selected_meals || []);
-    const meals = this.meals.filter((meal) => selected.has(meal.id));
+    const publicResults = this.voting.results || [];
+    const entries = publicResults.length
+      ? publicResults.map((result) => ({
+          meal: this.meals.find((meal) => meal.id === result.meal_id),
+          result,
+        })).filter((entry) => entry.meal)
+      : this.meals.filter((meal) => selected.has(meal.id)).map((meal) => ({ meal, result: null }));
     return `
       <section class="voting-hero"><div><p class="eyebrow">Round complete</p><h2>Tonight's chosen meals</h2>
         <p class="muted">The voting round is closed.</p></div><span class="status status-results">Complete</span></section>
-      <section class="section"><div class="chosen-grid">${meals.map((meal) => `<div class="chosen-meal">${this.escape(meal.name)}</div>`).join("") || '<p class="muted">No selected meals were recorded.</p>'}</div></section>`;
+      <section class="section"><div class="chosen-grid">${entries.map(({ meal, result }) => `
+        <div class="chosen-meal ${result?.selected ? "selected" : ""}">
+          <div><strong>${this.escape(meal.name)}</strong>${result ? `
+            <span class="result-meta">${result.votes_received}/${result.voter_count} votes</span>
+            ${result.tiebreak_label ? `<span class="result-meta">${this.escape(result.tiebreak_label)}: ${Number(result.tiebreak_score).toFixed(3)}</span>` : ""}
+          ` : ""}</div>
+          ${result ? `<span class="result-rank">#${result.rank}</span>` : ""}
+        </div>`).join("") || '<p class="muted">No selected meals were recorded.</p>'}</div></section>`;
   }
 
   renderStartVoting() {
@@ -241,8 +254,9 @@ class WfdPanel extends HTMLElement {
         .progress-track { height:8px; border-radius:99px; overflow:hidden; background:#e7ede9; margin:10px 0 22px; } .progress-track div { height:100%; background:var(--accent); border-radius:inherit; transition:width .25s ease; }
         .meal-prompt { display:flex; justify-content:space-between; gap:16px; margin:0 0 12px; } .meal-prompt span,.already-voted span { color:var(--muted); font-size:13px; }
         .meal-grid,.chosen-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-bottom:20px; }
-        .meal-option,.chosen-meal { display:flex; align-items:flex-start; gap:10px; min-height:44px; padding:12px; border:1px solid var(--line); border-radius:10px; background:#fff; }
-        .meal-option.chosen,.chosen-meal { border-color:var(--accent); background:var(--mint); } .meal-option input { width:auto; margin-top:3px; }
+        .meal-option,.chosen-meal { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; min-height:44px; padding:12px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+        .meal-option.chosen,.chosen-meal.selected { border-color:var(--accent); background:var(--mint); } .meal-option input { width:auto; margin-top:3px; }
+        .chosen-meal > div { display:grid; gap:4px; } .result-meta { color:var(--muted); font-size:13px; } .result-rank { color:var(--accent); font-weight:700; }
         @media (max-width:600px) { .shell { padding:16px; } .voting-hero,.section-heading,.meal-prompt { align-items:flex-start; flex-direction:column; } }
       </style>
       <ha-card header="What's For Dinner"><div class="shell"><nav>${tabs.map((tab) => `<button class="${this._activeTab === tab ? "active" : ""}" data-tab="${tab}">${tab[0].toUpperCase() + tab.slice(1)}</button>`).join("")}</nav>${body}</div></ha-card>`;
