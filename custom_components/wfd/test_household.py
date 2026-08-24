@@ -138,3 +138,15 @@ async def test_household_sensor_contract_data(storage: WFDStorage) -> None:
         {"id": "person.clare", "name": "Clare"},
         {"id": "person.steve", "name": "Steve"},
     ]
+
+@pytest.mark.asyncio
+async def test_resolves_linked_ha_user_and_designates_steve_admin(storage) -> None:
+    """Voting identity and admin access come from the linked HA user."""
+    service = household(storage)
+    service._hass.states.async_all.return_value[0].attributes = {"user_id": "ha-steve"}
+    service._hass.states.async_all.return_value[1].attributes = {"user_id": "ha-clare"}
+    await service.async_sync()
+
+    assert (await service.async_get_voter_for_user("ha-steve")).id == "person.steve"
+    assert await service.async_is_admin_user("ha-steve") is True
+    assert await service.async_is_admin_user("ha-clare") is False
