@@ -26,6 +26,8 @@ def test_frontend_has_role_based_voting_and_archive_hooks():
     assert "get isAdmin()" in content
     assert 'action === "restore"' in content
     assert "Already voted" in content
+    assert "votes_received" in content
+    assert "tiebreak_label" in content
     assert "renderStartVoting()" in content
     assert 'voting.status === "results_stored"' in content
 
