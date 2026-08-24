@@ -7,10 +7,9 @@ try:
     from homeassistant.helpers.dispatcher import async_dispatcher_connect
 except ModuleNotFoundError:
     class SensorEntity:
-        """Test fallback when Home Assistant is unavailable."""
+        """Test fallback."""
 
     def async_dispatcher_connect(*args, **kwargs):
-        """Test fallback when Home Assistant is unavailable."""
         return lambda: None
 
 from .updates import SIGNAL_WFD_UPDATED
@@ -22,6 +21,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities([
         WFDMealLibrarySensor(hass, data["meal_library"]),
         WFDHouseholdSensor(hass, data["household"]),
+        WFDVotingSensor(hass, data["voting"]),
     ])
 
 
@@ -32,21 +32,13 @@ class WFDBaseSensor(SensorEntity):
         self._hass = hass
 
     async def async_added_to_hass(self):
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self._hass,
-                SIGNAL_WFD_UPDATED,
-                self._refresh,
-            )
-        )
+        self.async_on_remove(async_dispatcher_connect(self._hass, SIGNAL_WFD_UPDATED, self._refresh))
 
     def _refresh(self):
         self.async_schedule_update_ha_state(True)
 
 
 class WFDMealLibrarySensor(WFDBaseSensor):
-    """Expose the WFD meal library including archived meals."""
-
     _attr_name = "WFD Meal Library"
 
     def __init__(self, hass, meal_library):
@@ -68,8 +60,6 @@ class WFDMealLibrarySensor(WFDBaseSensor):
 
 
 class WFDHouseholdSensor(WFDBaseSensor):
-    """Expose WFD household voters and available Home Assistant Persons."""
-
     _attr_name = "WFD Household"
 
     def __init__(self, hass, household):
@@ -85,11 +75,31 @@ class WFDHouseholdSensor(WFDBaseSensor):
 
     @property
     def extra_state_attributes(self):
-        return {
-            "voters": [{"id": v.id, "name": v.name, "active": v.active} for v in self._voters],
-            "available_persons": self._available_persons,
-        }
+        return {"voters": [{"id": v.id, "name": v.name, "active": v.active} for v in self._voters], "available_persons": self._available_persons}
 
     async def async_update(self):
         self._voters = await self._household.async_get_voters(active_only=False)
         self._available_persons = self._household.async_get_available_persons()
+
+
+class WFDVotingSensor(WFDBaseSensor):
+    """Expose round progress and completion state without private votes."""
+
+    _attr_name = "WFD Voting"
+
+    def __init__(self, hass, voting):
+        super().__init__(hass)
+        self._voting = voting
+        self._attr_unique_id = "wfd_voting"
+        self._state = {}
+
+    @property
+    def native_value(self):
+        return self._state.get("status", "idle")
+
+    @property
+    def extra_state_attributes(self):
+        return self._state
+
+    async def async_update(self):
+        self._state = await self._voting.async_get_public_state()
