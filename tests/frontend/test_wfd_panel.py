@@ -24,5 +24,5 @@ def test_frontend_has_role_based_voting_and_archive_hooks():
     """The panel contains the role and archive extension points."""
     content = open("custom_components/wfd/frontend/wfd-panel.js").read()
     assert "get isAdmin()" in content
-    assert 'data-action="restore"' in content
+    assert 'action === "restore"' in content
     assert "Already voted" in content
