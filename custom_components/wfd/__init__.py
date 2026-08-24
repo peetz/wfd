@@ -9,6 +9,7 @@ from .household import Household
 from .meal_library import MealLibrary
 from .services import async_setup_services
 from .storage import WFDStorage
+from .voting_manager import VotingManager
 
 PLATFORMS = ["sensor"]
 
@@ -20,20 +21,13 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
     meal_library = MealLibrary(storage)
     household = Household(hass, storage)
     await household.async_start()
-
-    hass.data.setdefault("wfd", {})[entry.entry_id] = {
-        "storage": storage,
-        "meal_library": meal_library,
-        "household": household,
-    }
-
-    await async_setup_services(hass, meal_library, household)
+    voting = VotingManager(storage, meal_library, household)
+    hass.data.setdefault("wfd", {})[entry.entry_id] = {"storage": storage, "meal_library": meal_library, "household": household, "voting": voting}
+    await async_setup_services(hass, meal_library, household, voting)
     await async_register_frontend(hass)
-
     forward_setups = getattr(hass.config_entries, "async_forward_entry_setups", None)
     if inspect.iscoroutinefunction(forward_setups):
         await forward_setups(entry, PLATFORMS)
-
     return True
 
 
@@ -42,7 +36,6 @@ async def async_unload_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
     data = hass.data.get("wfd", {}).get(entry.entry_id)
     if data is not None:
         await data["household"].async_stop()
-
     unload_platforms = getattr(hass.config_entries, "async_unload_platforms", None)
     if inspect.iscoroutinefunction(unload_platforms):
         await unload_platforms(entry, PLATFORMS)
