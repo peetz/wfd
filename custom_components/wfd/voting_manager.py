@@ -82,9 +82,24 @@ class VotingManager:
         return results
 
     async def async_get_public_state(self) -> dict:
-        """Return progress without revealing individual votes."""
+        """Return progress and completed selections without exposing private votes."""
         rounds = await self._storage.async_get_voting_rounds()
         active = next((item for item in reversed(rounds) if item.status is VotingRoundStatus.ACTIVE), None)
-        if active is None:
-            return {"status": "idle", "round_id": None, "submitted": 0, "voters": 0, "meals_required": 0}
-        return {"status": active.status.value, "round_id": active.id, "submitted": await self._storage.async_get_submitted_voter_count(active.id), "voters": active.voter_count, "meals_required": active.meals_required}
+        if active is not None:
+            return {
+                "status": active.status.value,
+                "round_id": active.id,
+                "submitted": await self._storage.async_get_submitted_voter_count(active.id),
+                "voters": active.voter_count,
+                "meals_required": active.meals_required,
+            }
+        latest = rounds[-1] if rounds else None
+        if latest is not None and latest.status is VotingRoundStatus.RESULTS_STORED:
+            results = await self._storage.async_get_results(latest.id)
+            return {
+                "status": latest.status.value,
+                "round_id": latest.id,
+                "selected_meals": [result.meal_id for result in results if result.selected],
+                "meals_required": latest.meals_required,
+            }
+        return {"status": "idle", "round_id": None, "submitted": 0, "voters": 0, "meals_required": 0}
