@@ -1,255 +1,80 @@
-/*
- * What's For Dinner frontend panel.
- */
+/* WFD Home Assistant panel. Business rules remain in WFD services. */
 
 class WfdPanel extends HTMLElement {
   constructor() {
     super();
-    this._busy = new Set();
+    this._hass = null;
     this._activeTab = "meals";
+    this._busy = new Set();
+    this._selectedMeals = new Set();
   }
 
-  set hass(hass) {
-    this._hass = hass;
-    this.render();
-  }
+  set hass(hass) { this._hass = hass; this.render(); }
+  connectedCallback() { this.render(); }
 
-  connectedCallback() {
-    this.render();
-  }
+  state(id) { return this._hass?.states?.[id]; }
+  get meals() { return this.state("sensor.wfd_meal_library")?.attributes?.meals || []; }
+  get voters() { return this.state("sensor.wfd_household")?.attributes?.voters || []; }
+  get persons() { return this.state("sensor.wfd_household")?.attributes?.available_persons || []; }
+  get voting() { return this.state("sensor.wfd_voting")?.attributes || {}; }
 
-  get meals() {
-    return (
-      this._hass?.states?.["sensor.wfd_meal_library"]?.attributes?.meals || []
-    );
-  }
-
-  get voters() {
-    return (
-      this._hass?.states?.["sensor.wfd_household"]?.attributes?.voters || []
-    );
-  }
-
-  get householdPersons() {
-    return (
-      this._hass?.states?.["sensor.wfd_household"]?.attributes
-        ?.available_persons || []
-    );
-  }
-
-  async call(action, data, key) {
-    this._busy.add(key);
-    this.render();
-
-    try {
-      await this._hass.callService("wfd", action, data);
-    } finally {
-      this._busy.delete(key);
-      this.render();
-    }
-  }
-
-  async addMeal() {
-    const name = window.prompt("Meal name");
-    if (name) {
-      await this.call("add_meal", { name }, "add-meal");
-    }
-  }
-
-  async renameMeal(meal) {
-    const name = window.prompt("Rename meal", meal.name);
-    if (name && name !== meal.name) {
-      await this.call(
-        "rename_meal",
-        { meal_id: meal.id, name },
-        meal.id
-      );
-    }
-  }
-
-  async archiveMeal(meal) {
-    await this.call("archive_meal", { meal_id: meal.id }, meal.id);
-  }
-
-  async restoreMeal(meal) {
-    await this.call("restore_meal", { meal_id: meal.id }, meal.id);
-  }
-
-  async addVoter(person) {
-    await this.call("add_voter", { person_id: person.id }, person.id);
-  }
-
-  async archiveVoter(voter) {
-    await this.call(
-      "archive_voter",
-      { person_id: voter.id },
-      voter.id
-    );
-  }
-
-  async restoreVoter(voter) {
-    await this.call(
-      "restore_voter",
-      { person_id: voter.id },
-      voter.id
-    );
+  async call(service, data, key = service) {
+    this._busy.add(key); this.render();
+    try { await this._hass.callService("wfd", service, data); }
+    finally { this._busy.delete(key); this.render(); }
   }
 
   renderMeals() {
-    const active = this.meals.filter((m) => m.active !== false);
-    const archived = this.meals.filter((m) => m.active === false);
-
-    const rows = (items, actions) =>
-      items
-        .map(
-          (m) => `
-          <li>
-            ${m.name}
-            ${actions
-              .map(
-                (a) => `
-              <button
-                ${this._busy.has(m.id) ? "disabled" : ""}
-                data-action="${a}"
-                data-id="${m.id}">
-                ${a}
-              </button>`
-              )
-              .join("")}
-          </li>`
-        )
-        .join("");
-
-    return `
-      <ha-button id="add" raised>Add meal</ha-button>
-
-      <h3>Active Meals</h3>
-      <ul>
-        ${rows(active, ["rename", "archive"]) || "<li>No meals</li>"}
-      </ul>
-
-      <h3>Archived Meals</h3>
-      <ul>
-        ${rows(archived, ["restore"]) || "<li>No archived meals</li>"}
-      </ul>
-    `;
+    const active = this.meals.filter((meal) => meal.active !== false);
+    return `<button data-action="add-meal">Add meal</button>
+      <h3>Active Meals</h3><ul>${active.map((meal) => `<li>${meal.name}
+      <button data-action="archive" data-id="${meal.id}">Archive</button></li>`).join("") || "<li>No meals</li>"}</ul>`;
   }
 
   renderHousehold() {
-    const active = this.voters.filter((v) => v.active !== false);
-    const archived = this.voters.filter((v) => v.active === false);
-
-    const ids = new Set(this.voters.map((v) => v.id));
-    const available = this.householdPersons.filter(
-      (p) => !ids.has(p.id)
-    );
-
-    const rows = (items, action) =>
-      items
-        .map(
-          (i) => `
-          <li>
-            ${i.name}
-            <button
-              ${this._busy.has(i.id) ? "disabled" : ""}
-              data-action="${action}"
-              data-id="${i.id}">
-              ${action}
-            </button>
-          </li>`
-        )
-        .join("");
-
-    return `
-      <h3>Active Voters</h3>
-      <ul>
-        ${rows(active, "archive-voter") || "<li>No voters</li>"}
-      </ul>
-
-      <h3>Available People</h3>
-      <ul>
-        ${rows(available, "add-voter") || "<li>No people available</li>"}
-      </ul>
-
-      <h3>Archived Voters</h3>
-      <ul>
-        ${rows(archived, "restore-voter") || "<li>No archived voters</li>"}
-      </ul>
-    `;
+    const active = this.voters.filter((voter) => voter.active !== false);
+    const known = new Set(this.voters.map((voter) => voter.id));
+    const available = this.persons.filter((person) => !known.has(person.id));
+    return `<h3>Active Voters</h3><ul>${active.map((voter) => `<li>${voter.name}
+      <button data-action="archive-voter" data-id="${voter.id}">Archive</button></li>`).join("") || "<li>No voters</li>"}</ul>
+      <h3>Available People</h3><ul>${available.map((person) => `<li>${person.name}
+      <button data-action="add-voter" data-id="${person.id}">Add</button></li>`).join("") || "<li>No people available</li>"}</ul>`;
   }
 
-  bindActions() {
-    this.querySelector("#add")?.addEventListener(
-      "click",
-      () => this.addMeal()
-    );
-
-    this.querySelectorAll("button[data-action]").forEach((button) =>
-      button.addEventListener("click", async () => {
-        const id = button.dataset.id;
-        const action = button.dataset.action;
-
-        const meal = this.meals.find((x) => x.id === id);
-        const voter = this.voters.find((x) => x.id === id);
-        const person = this.householdPersons.find((x) => x.id === id);
-
-        if (action === "rename" && meal) {
-          await this.renameMeal(meal);
-        }
-
-        if (action === "archive" && meal) {
-          await this.archiveMeal(meal);
-        }
-
-        if (action === "restore" && meal) {
-          await this.restoreMeal(meal);
-        }
-
-        if (action === "add-voter" && person) {
-          await this.addVoter(person);
-        }
-
-        if (action === "archive-voter" && voter) {
-          await this.archiveVoter(voter);
-        }
-
-        if (action === "restore-voter" && voter) {
-          await this.restoreVoter(voter);
-        }
-      })
-    );
+  renderVoting() {
+    const v = this.voting;
+    const active = this.meals.filter((meal) => meal.active !== false);
+    const voters = this.voters.filter((voter) => voter.active !== false);
+    const round = v.round_id ? `<p>Progress: ${v.submitted || 0}/${v.voters || 0} voters</p>
+      <label>Voter <select id="voter">${voters.map((x) => `<option value="${x.id}">${x.name}</option>`).join("")}</select></label>
+      <div>${active.map((meal) => `<label><input type="checkbox" data-meal="${meal.id}"> ${meal.name}</label>`).join(" ")}</div>
+      <button data-action="submit-vote">Submit vote</button>
+      <button data-action="close-voting">Close round</button>` : `<label>Meals to select <input id="meals-required" type="number" min="1" value="1"></label>
+      <button data-action="start-voting">Start voting</button>`;
+    return `<p>Status: ${v.status || "idle"}</p>${round}`;
   }
 
   render() {
-    if (!this._hass) {
-      return;
+    if (!this._hass) return;
+    const body = this._activeTab === "household" ? this.renderHousehold() : this._activeTab === "voting" ? this.renderVoting() : this.renderMeals();
+    this.innerHTML = `<ha-card header="What's For Dinner"><div style="padding:16px">
+      <nav><button data-tab="meals">Meals</button><button data-tab="household">Household</button><button data-tab="voting">Voting</button></nav>${body}</div></ha-card>`;
+    this.querySelectorAll("[data-tab]").forEach((button) => button.addEventListener("click", () => { this._activeTab = button.dataset.tab; this.render(); }));
+    this.querySelectorAll("[data-action]").forEach((button) => button.addEventListener("click", () => this.action(button)));
+  }
+
+  async action(button) {
+    const action = button.dataset.action;
+    if (action === "add-meal") { const name = window.prompt("Meal name"); if (name) await this.call("add_meal", { name }); }
+    if (action === "archive") await this.call("archive_meal", { meal_id: button.dataset.id }, button.dataset.id);
+    if (action === "add-voter") await this.call("add_voter", { person_id: button.dataset.id }, button.dataset.id);
+    if (action === "archive-voter") await this.call("archive_voter", { person_id: button.dataset.id }, button.dataset.id);
+    if (action === "start-voting") await this.call("start_voting", { meals_required: Number(this.querySelector("#meals-required").value) });
+    if (action === "submit-vote") {
+      const meal_ids = [...this.querySelectorAll("[data-meal]:checked")].map((input) => input.dataset.meal);
+      await this.call("submit_vote", { round_id: this.voting.round_id, user_id: this.querySelector("#voter").value, meal_ids });
     }
-
-    this.innerHTML = `
-      <ha-card header="What's For Dinner">
-        <div style="padding:16px">
-          <div>
-            <button data-tab="meals">Meals</button>
-            <button data-tab="household">Voters / Household</button>
-          </div>
-
-          ${
-            this._activeTab === "household"
-              ? this.renderHousehold()
-              : this.renderMeals()
-          }
-        </div>
-      </ha-card>
-    `;
-
-    this.querySelectorAll("button[data-tab]").forEach((button) =>
-      button.addEventListener("click", () => {
-        this._activeTab = button.dataset.tab;
-        this.render();
-      })
-    );
-
-    this.bindActions();
+    if (action === "close-voting") await this.call("close_voting", { round_id: this.voting.round_id });
   }
 }
 
