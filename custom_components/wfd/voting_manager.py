@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from collections import Counter
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from .models import RoundResult, Vote, VotingRound
+from .decision_engine import DecisionEngine
+from .models import Vote, VotingRound
 from .models.voting_round import VotingRoundStatus
 from .storage import WFDStorage
 from .voting import validate_selection
@@ -24,6 +24,7 @@ class VotingManager:
         self._storage = storage
         self._meal_library = meal_library
         self._household = household
+        self._decision_engine = DecisionEngine()
 
     async def async_create_round(self, meals_required: int, deadline_minutes: int = 1440) -> VotingRound:
         """Create and activate a round using current active meals and voters."""
@@ -69,15 +70,23 @@ class VotingManager:
             raise VotingError("Not all voters have submitted")
         decision_round = replace(round_, closed_at=now, status=VotingRoundStatus.DECISION_GENERATED)
         await self._storage.async_set_voting_round(decision_round)
-        scores = Counter(vote.meal_id for vote in await self._storage.async_get_votes(round_id))
+        current_votes = await self._storage.async_get_votes(round_id)
+        all_rounds = await self._storage.async_get_voting_rounds()
+        completed_rounds = [item for item in all_rounds if item.id != round_id]
+        historical_votes = {
+            item.id: await self._storage.async_get_votes(item.id)
+            for item in completed_rounds
+        }
         meals = await self._meal_library.async_get_meals(active_only=True)
-        ranked = sorted(meals, key=lambda meal: (-scores[meal.id], meal.name.casefold(), meal.id))
-        results = []
-        for rank, meal in enumerate(ranked, 1):
-            score = float(scores[meal.id])
-            result = RoundResult(round_id, meal.id, rank <= round_.meals_required, score, score, 0.0, 0.0, rank, f"{score:g} private votes")
+        results = self._decision_engine.decide(
+            meals,
+            round_,
+            current_votes,
+            completed_rounds,
+            historical_votes,
+        )
+        for result in results:
             await self._storage.async_add_result(result)
-            results.append(result)
         await self._storage.async_mark_round_results_stored(replace(round_, closed_at=now, status=VotingRoundStatus.RESULTS_STORED))
         return results
 
