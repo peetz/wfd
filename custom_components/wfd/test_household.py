@@ -145,6 +145,10 @@ async def test_resolves_linked_ha_user_and_designates_steve_admin(storage) -> No
     service = household(storage)
     service._hass.states.async_all.return_value[0].attributes = {"user_id": "ha-steve"}
     service._hass.states.async_all.return_value[1].attributes = {"user_id": "ha-clare"}
+    service._hass.auth.async_get_user = AsyncMock(side_effect=[
+        MagicMock(is_admin=True),
+        MagicMock(is_admin=False),
+    ])
     await service.async_sync()
 
     assert (await service.async_get_voter_for_user("ha-steve")).id == "person.steve"
