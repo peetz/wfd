@@ -108,7 +108,6 @@ class VotingManager:
             results = await self._storage.async_get_results(latest.id)
             votes = await self._storage.async_get_votes(latest.id)
             vote_counts = Counter(vote.meal_id for vote in votes)
-            current_score_groups = Counter(result.vote_score for result in results)
             historical_groups = {}
             for result in results:
                 historical_groups.setdefault(result.vote_score, []).append(result)
