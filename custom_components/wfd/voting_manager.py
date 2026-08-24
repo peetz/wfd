@@ -78,6 +78,10 @@ class VotingManager:
             item.id: await self._storage.async_get_votes(item.id)
             for item in completed_rounds
         }
+        historical_results = {
+            item.id: await self._storage.async_get_results(item.id)
+            for item in completed_rounds
+        }
         meals = await self._meal_library.async_get_meals(active_only=True)
         results = self._decision_engine.decide(
             meals,
@@ -85,6 +89,7 @@ class VotingManager:
             current_votes,
             completed_rounds,
             historical_votes,
+            historical_results,
         )
         for result in results:
             await self._storage.async_add_result(result)

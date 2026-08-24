@@ -45,6 +45,7 @@ class DecisionEngine:
         current_votes: Iterable[Vote],
         completed_rounds: Iterable[VotingRound],
         historical_votes: Mapping[str, Iterable[Vote]],
+        historical_results: Mapping[str, Iterable[RoundResult]] | None = None,
     ) -> list[RoundResult]:
         """Return one ranked result for every active meal.
 
@@ -53,6 +54,7 @@ class DecisionEngine:
         """
         active_meals = [meal for meal in meals if meal.active]
         current_votes = list(current_votes)
+        historical_results = historical_results or {}
         completed_rounds = [
             round_
             for round_ in completed_rounds
@@ -80,9 +82,10 @@ class DecisionEngine:
                 history_counts[meal_id].append(
                     count / round_.voter_count if round_.voter_count else 0.0
                 )
-                if count:
-                    last_chosen_round[meal_id] = max(
-                        last_chosen_round.get(meal_id, 0), round_.number
+            for result in historical_results.get(round_.id, ()):
+                if result.selected:
+                    last_chosen_round[result.meal_id] = max(
+                        last_chosen_round.get(result.meal_id, 0), round_.number
                     )
 
         scores = []

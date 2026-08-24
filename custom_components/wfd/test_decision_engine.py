@@ -3,7 +3,7 @@
 from datetime import UTC, datetime, timedelta
 
 from .decision_engine import DecisionEngine
-from .models import Meal, Vote, VotingRound
+from .models import Meal, RoundResult, Vote, VotingRound
 from .models.voting_round import VotingRoundStatus
 
 
@@ -67,6 +67,10 @@ def test_recency_prefers_recently_chosen_meal_when_other_scores_match() -> None:
             "history-1": [Vote("history-1", "voter-0", "b")],
             "history-3": [Vote("history-3", "voter-0", "a")],
         },
+        {
+            "history-1": [RoundResult("history-1", "b", True, 0.0, 0.0, 0.0, 0.0, 1, "selected")],
+            "history-3": [RoundResult("history-3", "a", True, 0.0, 0.0, 0.0, 0.0, 1, "selected")],
+        },
     )
 
     assert [result.meal_id for result in results] == ["a", "b"]
@@ -82,3 +86,24 @@ def test_ties_are_deterministic_and_selection_is_exact() -> None:
     assert [result.meal_id for result in results] == ["x", "a", "z"]
     assert sum(result.selected for result in results) == 2
     assert all("Current" in result.explanation for result in results)
+
+
+def test_voted_but_not_selected_meal_has_no_recency_credit() -> None:
+    current = round_(4, "current")
+    history = [round_(3, "history-3")]
+    meals = [Meal("a", "Alpha"), Meal("b", "Beta")]
+    results = DecisionEngine().decide(
+        meals,
+        current,
+        [],
+        history,
+        {"history-3": [Vote("history-3", "voter-0", "a"), Vote("history-3", "voter-1", "b")]},
+        {"history-3": [
+            RoundResult("history-3", "a", False, 0.0, 0.5, 0.0, 0.0, 2, "not selected"),
+            RoundResult("history-3", "b", True, 0.0, 0.5, 0.0, 0.0, 1, "selected"),
+        ]},
+    )
+
+    scores = {result.meal_id: result.recency_score for result in results}
+    assert scores["a"] == 0.0
+    assert scores["b"] == 1.0
