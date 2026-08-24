@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -34,15 +35,7 @@ class VotingManager:
             raise VotingError("At least one active voter is required")
         existing = await self._storage.async_get_voting_rounds()
         now = datetime.now(UTC)
-        round_ = VotingRound(
-            id=str(uuid4()),
-            number=len(existing) + 1,
-            created_at=now,
-            voting_deadline=now + timedelta(minutes=deadline_minutes),
-            meals_required=meals_required,
-            voter_ids=tuple(voter.id for voter in voters),
-            status=VotingRoundStatus.ACTIVE,
-        )
+        round_ = VotingRound(str(uuid4()), len(existing) + 1, now, now + timedelta(minutes=deadline_minutes), meals_required, tuple(voter.id for voter in voters), status=VotingRoundStatus.ACTIVE)
         await self._storage.async_set_voting_round(round_)
         return round_
 
@@ -72,29 +65,26 @@ class VotingManager:
         if round_.status is not VotingRoundStatus.ACTIVE:
             raise VotingError("Voting round is already closed")
         now = now or datetime.now(UTC)
-        voter_count = len(round_.voter_ids)
-        submitted = await self._storage.async_get_submitted_voter_count(round_id)
-        if submitted < voter_count and now < round_.voting_deadline:
+        if await self._storage.async_get_submitted_voter_count(round_id) < round_.voter_count and now < round_.voting_deadline:
             raise VotingError("Not all voters have submitted")
-        closed = round_.__class__(**{**round_.__dict__, "closed_at": now, "status": VotingRoundStatus.DECISION_GENERATED})
-        await self._storage.async_set_voting_round(closed)
-        votes = await self._storage.async_get_votes(round_id)
-        scores = Counter(vote.meal_id for vote in votes)
+        decision_round = replace(round_, closed_at=now, status=VotingRoundStatus.DECISION_GENERATED)
+        await self._storage.async_set_voting_round(decision_round)
+        scores = Counter(vote.meal_id for vote in await self._storage.async_get_votes(round_id))
         meals = await self._meal_library.async_get_meals(active_only=True)
         ranked = sorted(meals, key=lambda meal: (-scores[meal.id], meal.name.casefold(), meal.id))
         results = []
         for rank, meal in enumerate(ranked, 1):
             score = float(scores[meal.id])
-            results.append(RoundResult(round_id, meal.id, rank <= round_.meals_required, score, score, 0.0, 0.0, rank, f"{score:g} private votes"))
-            await self._storage.async_add_result(results[-1])
-        final = round_.__class__(**{**round_.__dict__, "closed_at": now, "status": VotingRoundStatus.RESULTS_STORED})
-        await self._storage.async_mark_round_results_stored(final)
+            result = RoundResult(round_id, meal.id, rank <= round_.meals_required, score, score, 0.0, 0.0, rank, f"{score:g} private votes")
+            await self._storage.async_add_result(result)
+            results.append(result)
+        await self._storage.async_mark_round_results_stored(replace(round_, closed_at=now, status=VotingRoundStatus.RESULTS_STORED))
         return results
 
     async def async_get_public_state(self) -> dict:
         """Return progress without revealing individual votes."""
         rounds = await self._storage.async_get_voting_rounds()
-        active = next((round_ for round_ in reversed(rounds) if round_.status is VotingRoundStatus.ACTIVE), None)
+        active = next((item for item in reversed(rounds) if item.status is VotingRoundStatus.ACTIVE), None)
         if active is None:
             return {"status": "idle", "round_id": None, "submitted": 0, "voters": 0, "meals_required": 0}
         return {"status": active.status.value, "round_id": active.id, "submitted": await self._storage.async_get_submitted_voter_count(active.id), "voters": active.voter_count, "meals_required": active.meals_required}
