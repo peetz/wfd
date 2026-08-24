@@ -9,6 +9,7 @@ class WfdPanel extends HTMLElement {
   }
 
   connectedCallback() {
+    this._busy = new Set();
     this.render();
   }
 
@@ -24,144 +25,69 @@ class WfdPanel extends HTMLElement {
     return this._hass?.states?.["sensor.wfd_household"]?.attributes?.available_persons || [];
   }
 
-  async call(action, data) {
-    await this._hass.callService("wfd", action, data);
+  async call(action, data, key) {
+    this._busy.add(key);
+    this.render();
+    try {
+      await this._hass.callService("wfd", action, data);
+    } finally {
+      this._busy.delete(key);
+      this.render();
+    }
   }
 
   async addMeal() {
     const name = window.prompt("Meal name");
-    if (!name) return;
-    await this.call("add_meal", { name });
+    if (name) await this.call("add_meal", { name }, "add-meal");
   }
 
   async renameMeal(meal) {
-    const newName = window.prompt("Rename meal", meal.name);
-    if (!newName || newName === meal.name) return;
-    await this.call("rename_meal", { meal_id: meal.id, name: newName });
+    const name = window.prompt("Rename meal", meal.name);
+    if (name && name !== meal.name) await this.call("rename_meal", { meal_id: meal.id, name }, meal.id);
   }
 
-  async archiveMeal(meal) {
-    await this.call("archive_meal", { meal_id: meal.id });
-  }
-
-  async restoreMeal(meal) {
-    await this.call("restore_meal", { meal_id: meal.id });
-  }
-
-  async addVoter(person) {
-    await this.call("add_voter", { person_id: person.id });
-  }
-
-  async archiveVoter(voter) {
-    await this.call("archive_voter", { person_id: voter.id });
-  }
-
-  async restoreVoter(voter) {
-    await this.call("restore_voter", { person_id: voter.id });
-  }
+  async archiveMeal(meal) { await this.call("archive_meal", { meal_id: meal.id }, meal.id); }
+  async restoreMeal(meal) { await this.call("restore_meal", { meal_id: meal.id }, meal.id); }
+  async addVoter(person) { await this.call("add_voter", { person_id: person.id }, person.id); }
+  async archiveVoter(voter) { await this.call("archive_voter", { person_id: voter.id }, voter.id); }
+  async restoreVoter(voter) { await this.call("restore_voter", { person_id: voter.id }, voter.id); }
 
   renderMeals() {
-    const meals = this.meals;
-    const active = meals.filter((meal) => meal.active !== false);
-    const archived = meals.filter((meal) => meal.active === false);
-    const rows = (items, actions) => items.map((meal) => `
-      <li>
-        ${meal.name}
-        ${actions.map((action) => `<button data-action="${action}" data-id="${meal.id}">${action}</button>`).join("")}
-      </li>
-    `).join("");
-
-    return `
-      <ha-button id="add" raised>Add meal</ha-button>
-      <h3>Active Meals</h3>
-      ${active.length ? `<ul>${rows(active, ["rename", "archive"])}</ul>` : "<p>No active meals.</p>"}
-      <h3>Archived Meals</h3>
-      ${archived.length ? `<ul>${rows(archived, ["restore"])}</ul>` : "<p>No archived meals.</p>"}
-    `;
+    const active = this.meals.filter((m) => m.active !== false);
+    const archived = this.meals.filter((m) => m.active === false);
+    const rows = (items, actions) => items.map((m) => `<li>${m.name} ${actions.map((a) => `<button ${this._busy.has(m.id) ? "disabled" : ""} data-action="${a}" data-id="${m.id}">${a}</button>`).join("")}</li>`).join("");
+    return `<ha-button id="add" raised>Add meal</ha-button><h3>Active Meals</h3><ul>${rows(active,["rename","archive"])}</ul><h3>Archived Meals</h3><ul>${rows(archived,["restore"])}</ul>`;
   }
 
   renderHousehold() {
-    const voters = this.voters;
-    const active = voters.filter((voter) => voter.active !== false);
-    const archived = voters.filter((voter) => voter.active === false);
-    const activeIds = new Set(voters.map((voter) => voter.id));
-    const available = this.householdPersons.filter((person) => !activeIds.has(person.id));
-
-    const rows = (items, action) => items.map((item) => `
-      <li>
-        ${item.name}
-        <button data-action="${action}" data-id="${item.id}">${action}</button>
-      </li>
-    `).join("");
-
-    return `
-      <h3>Active Voters</h3>
-      ${active.length ? `<ul>${rows(active, "archive-voter")}</ul>` : "<p>No active voters.</p>"}
-      <h3>Available People</h3>
-      ${available.length ? `<ul>${rows(available, "add-voter")}</ul>` : "<p>No additional HA Persons available.</p>"}
-      <h3>Archived Voters</h3>
-      ${archived.length ? `<ul>${rows(archived, "restore-voter")}</ul>` : "<p>No archived voters.</p>"}
-    `;
+    const active = this.voters.filter((v) => v.active !== false);
+    const archived = this.voters.filter((v) => v.active === false);
+    const ids = new Set(this.voters.map((v) => v.id));
+    const available = this.householdPersons.filter((p) => !ids.has(p.id));
+    const rows = (items, action) => items.map((i) => `<li>${i.name}<button ${this._busy.has(i.id) ? "disabled" : ""} data-action="${action}" data-id="${i.id}">${action}</button></li>`).join("");
+    return `<h3>Active Voters</h3><ul>${rows(active,"archive-voter")}</ul><h3>Available People</h3><ul>${rows(available,"add-voter")}</ul><h3>Archived Voters</h3><ul>${rows(archived,"restore-voter")}</ul>`;
   }
 
   bindActions() {
     this.querySelector("#add")?.addEventListener("click", () => this.addMeal());
-    this.querySelectorAll("button[data-action]").forEach((button) => {
-      button.addEventListener("click", async () => {
-        const id = button.dataset.id;
-        const action = button.dataset.action;
-        const meals = this.meals;
-        const voters = this.voters;
-        const persons = this.householdPersons;
-        if (action === "rename") {
-          const meal = meals.find((item) => item.id === id);
-          if (meal) await this.renameMeal(meal);
-        } else if (action === "archive") {
-          const meal = meals.find((item) => item.id === id);
-          if (meal) await this.archiveMeal(meal);
-        } else if (action === "restore") {
-          const meal = meals.find((item) => item.id === id);
-          if (meal) await this.restoreMeal(meal);
-        } else if (action === "add-voter") {
-          const person = persons.find((item) => item.id === id);
-          if (person) await this.addVoter(person);
-        } else if (action === "archive-voter") {
-          const voter = voters.find((item) => item.id === id);
-          if (voter) await this.archiveVoter(voter);
-        } else if (action === "restore-voter") {
-          const voter = voters.find((item) => item.id === id);
-          if (voter) await this.restoreVoter(voter);
-        }
-      });
-    });
+    this.querySelectorAll("button[data-action]").forEach((b) => b.addEventListener("click", async () => {
+      const id=b.dataset.id; const a=b.dataset.action;
+      const meal=this.meals.find((x)=>x.id===id); const voter=this.voters.find((x)=>x.id===id); const person=this.householdPersons.find((x)=>x.id===id);
+      if(a==="rename"&&meal) await this.renameMeal(meal);
+      if(a==="archive"&&meal) await this.archiveMeal(meal);
+      if(a==="restore"&&meal) await this.restoreMeal(meal);
+      if(a==="add-voter"&&person) await this.addVoter(person);
+      if(a==="archive-voter"&&voter) await this.archiveVoter(voter);
+      if(a==="restore-voter"&&voter) await this.restoreVoter(voter);
+    }));
   }
 
   render() {
     if (!this._hass) return;
-    const activeTab = this._activeTab || "meals";
-
-    this.innerHTML = `
-      <ha-card header="What's For Dinner">
-        <div style="padding:16px">
-          <div role="tablist" style="display:flex;gap:8px;margin-bottom:16px">
-            <button data-tab="meals" class="tab-button">Meals</button>
-            <button data-tab="household" class="tab-button">Voters / Household</button>
-          </div>
-          <div id="tab-content">
-            ${activeTab === "meals" ? this.renderMeals() : this.renderHousehold()}
-          </div>
-        </div>
-      </ha-card>
-    `;
-
-    this.querySelectorAll("button[data-tab]").forEach((button) => {
-      button.addEventListener("click", () => {
-        this._activeTab = button.dataset.tab;
-        this.render();
-      });
-    });
+    const tab=this._activeTab||"meals";
+    this.innerHTML=`<ha-card header="What's For Dinner"><div style="padding:16px"><div><button data-tab="meals">Meals</button><button data-tab="household">Voters / Household</button></div>${tab==="meals"?this.renderMeals():this.renderHousehold()}</div></ha-card>`;
+    this.querySelectorAll("button[data-tab]").forEach((b)=>b.addEventListener("click",()=>{this._activeTab=b.dataset.tab;this.render();}));
     this.bindActions();
   }
 }
-
 customElements.define("wfd-panel", WfdPanel);
