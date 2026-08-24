@@ -11,8 +11,6 @@ from .errors import VoterNotFoundError, VoterUnavailableError
 from .models import Voter
 from .storage import WFDStorage
 
-ADMIN_PERSON_ID = "person.steve"
-ADMIN_PERSON_NAME = "steve"
 
 
 class Household:
@@ -79,9 +77,11 @@ class Household:
         return None
 
     async def async_is_admin_user(self, ha_user_id: str | None) -> bool:
-        """Return whether the HA user is the designated WFD administrator."""
-        voter = await self.async_get_voter_for_user(ha_user_id)
-        return bool(voter and (voter.id == ADMIN_PERSON_ID or voter.name.casefold() == ADMIN_PERSON_NAME))
+        """Return whether the HA user is an administrator in Home Assistant."""
+        if not ha_user_id or not hasattr(self._hass, "auth"):
+            return False
+        user = await self._hass.auth.async_get_user(ha_user_id)
+        return bool(user and user.is_admin)
 
     async def async_add_voter(self, person_id: str) -> Voter:
         person = self._find_person(person_id)
