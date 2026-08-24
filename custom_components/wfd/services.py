@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from .meal_library import MealLibrary
 
 from .errors import DuplicateMealError, InvalidMealNameError, MealNotFoundError, VoterNotFoundError, VoterUnavailableError
+from .updates import async_signal_update
 
 DOMAIN = "wfd"
 ADD_MEAL = "add_meal"
@@ -31,24 +32,28 @@ async def async_setup_services(hass: "HomeAssistant", meal_library: "MealLibrary
     async def add_meal(call: "ServiceCall") -> None:
         try:
             await meal_library.async_add_meal(call.data["name"])
+            async_signal_update(hass)
         except Exception as exc:
             raise _raise_service_error(exc) from exc
 
     async def rename_meal(call: "ServiceCall") -> None:
         try:
             await meal_library.async_rename_meal(call.data["meal_id"], call.data["name"])
+            async_signal_update(hass)
         except Exception as exc:
             raise _raise_service_error(exc) from exc
 
     async def archive_meal(call: "ServiceCall") -> None:
         try:
             await meal_library.async_archive_meal(call.data["meal_id"])
+            async_signal_update(hass)
         except Exception as exc:
             raise _raise_service_error(exc) from exc
 
     async def restore_meal(call: "ServiceCall") -> None:
         try:
             await meal_library.async_restore_meal(call.data["meal_id"])
+            async_signal_update(hass)
         except Exception as exc:
             raise _raise_service_error(exc) from exc
 
@@ -63,18 +68,21 @@ async def async_setup_services(hass: "HomeAssistant", meal_library: "MealLibrary
     async def add_voter(call: "ServiceCall") -> None:
         try:
             await household.async_add_voter(call.data["person_id"])
+            async_signal_update(hass)
         except Exception as exc:
             raise _raise_service_error(exc) from exc
 
     async def archive_voter(call: "ServiceCall") -> None:
         try:
             await household.async_archive_voter(call.data["person_id"])
+            async_signal_update(hass)
         except Exception as exc:
             raise _raise_service_error(exc) from exc
 
     async def restore_voter(call: "ServiceCall") -> None:
         try:
             await household.async_restore_voter(call.data["person_id"])
+            async_signal_update(hass)
         except Exception as exc:
             raise _raise_service_error(exc) from exc
 
