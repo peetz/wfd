@@ -140,8 +140,8 @@ async def test_household_sensor_contract_data(storage: WFDStorage) -> None:
     ]
 
 @pytest.mark.asyncio
-async def test_resolves_linked_ha_user_and_designates_steve_admin(storage) -> None:
-    """Voting identity and admin access come from the linked HA user."""
+async def test_resolves_linked_ha_user_and_uses_ha_admin_permission(storage) -> None:
+    """Voting identity and admin access come from Home Assistant."""
     service = household(storage)
     service._hass.states.async_all.return_value[0].attributes = {"user_id": "ha-steve"}
     service._hass.states.async_all.return_value[1].attributes = {"user_id": "ha-clare"}
