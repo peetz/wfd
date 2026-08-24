@@ -14,7 +14,10 @@ class WfdPanel extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    this.render();
+    const active = this.ownerDocument?.activeElement;
+    const editing = active && this.contains(active) &&
+      ["SELECT", "INPUT", "TEXTAREA"].includes(active.tagName);
+    if (!editing) this.render();
   }
 
   connectedCallback() {
