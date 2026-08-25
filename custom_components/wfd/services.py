@@ -5,6 +5,12 @@ from typing import TYPE_CHECKING
 from .errors import DuplicateMealError, InvalidMealNameError, MealNotFoundError, VoterNotFoundError, VoterUnavailableError
 from .updates import async_signal_update
 
+try:
+    from homeassistant.exceptions import HomeAssistantError
+except ModuleNotFoundError:
+    class HomeAssistantError(Exception):
+        """Test fallback when Home Assistant is unavailable."""
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
@@ -15,7 +21,6 @@ START_VOTING, SUBMIT_VOTE, CLOSE_VOTING = "start_voting", "submit_vote", "close_
 
 
 def _raise_service_error(exc: Exception) -> Exception:
-    from homeassistant.exceptions import HomeAssistantError
     if isinstance(exc, (MealNotFoundError, DuplicateMealError, InvalidMealNameError, VoterNotFoundError, VoterUnavailableError)):
         return HomeAssistantError(str(exc))
     return exc
@@ -25,13 +30,13 @@ async def async_setup_services(hass: "HomeAssistant", meal_library, household=No
     """Register WFD services."""
     async def run(method, *args):
         try:
-            await method(*args)
+            result = await method(*args)
             async_signal_update(hass)
+            return result
         except Exception as exc:
             raise _raise_service_error(exc) from exc
 
     async def require_admin(call):
-        from homeassistant.exceptions import HomeAssistantError
         if household is None or not await household.async_is_admin_user(getattr(call.context, "user_id", None)):
             raise HomeAssistantError("Only the designated WFD administrator can manage voting rounds")
 
@@ -66,20 +71,46 @@ async def async_setup_services(hass: "HomeAssistant", meal_library, household=No
     if voting is None:
         return
 
+    def fire_event(event_type, data):
+        """Fire a privacy-safe WFD lifecycle event when HA is available."""
+        if hasattr(hass, "bus") and hasattr(hass.bus, "async_fire"):
+            hass.bus.async_fire(event_type, data)
+
     async def start_voting(call):
         await require_admin(call)
-        await run(voting.async_create_round, call.data["meals_required"], call.data.get("deadline_minutes", 1440))
+        round_ = await run(
+            voting.async_create_round,
+            call.data.get("meals_required"),
+            call.data.get("deadline_minutes"),
+        )
+        fire_event(
+            "wfd_voting_started",
+            {
+                "round_id": round_.id,
+                "meals_required": round_.meals_required,
+                "voter_count": round_.voter_count,
+                "voting_deadline": round_.voting_deadline.isoformat(),
+            },
+        )
 
     async def submit_vote(call):
         voter = await household.async_get_voter_for_user(getattr(call.context, "user_id", None))
         if voter is None:
-            from homeassistant.exceptions import HomeAssistantError
             raise HomeAssistantError("Your Home Assistant user is not linked to an active WFD Person")
         await run(voting.async_submit_vote, call.data["round_id"], voter.id, call.data["meal_ids"])
 
     async def close_voting(call):
         await require_admin(call)
-        await run(voting.async_close_round, call.data["round_id"])
+        results = await run(voting.async_close_round, call.data["round_id"])
+        round_ = await voting.async_get_round(call.data["round_id"])
+        selected_meals = [result.meal_id for result in results if result.selected]
+        event_data = {
+            "round_id": call.data["round_id"],
+            "selected_meals": selected_meals,
+            "meals_required": round_.meals_required if round_ else len(selected_meals),
+        }
+        fire_event("wfd_voting_completed", event_data)
+        fire_event("wfd_results_available", event_data)
 
     for name, handler in ((START_VOTING, start_voting), (SUBMIT_VOTE, submit_vote), (CLOSE_VOTING, close_voting)):
         hass.services.async_register(DOMAIN, name, handler)
