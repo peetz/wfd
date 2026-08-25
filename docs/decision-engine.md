@@ -34,6 +34,8 @@ For a meal selected in the most recent completed round:
 
 A meal selected in the immediately preceding round scores `1.0`. Older selections score less. A meal with no selection history scores `0.0`.
 
+Recency is based on final selected results, not merely receiving a vote.
+
 ## Selection and explanations
 
 Meals are sorted by the priority order above and exactly `meals_required` meals are marked selected. Every stored result contains all component scores, its rank, and a plain-language explanation. Name and ID provide stable results when all decision scores tie.
