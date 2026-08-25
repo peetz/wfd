@@ -11,7 +11,13 @@ from .decision_engine import DecisionEngine
 from .models import Vote, VotingRound
 from .models.voting_round import VotingRoundStatus
 from .storage import WFDStorage
+from .updates import async_signal_update
 from .voting import validate_selection
+
+try:
+    from homeassistant.helpers.event import async_track_point_in_time
+except ModuleNotFoundError:
+    async_track_point_in_time = None
 
 
 class VotingError(ValueError):
@@ -41,6 +47,33 @@ class VotingManager:
         self._default_deadline_minutes = default_deadline_minutes
         self._hass = hass
         self._decision_engine = DecisionEngine()
+        self._deadline_unsub = None
+
+    def _clear_deadline_timer(self) -> None:
+        if self._deadline_unsub is not None:
+            self._deadline_unsub()
+            self._deadline_unsub = None
+
+    def _schedule_deadline_timer(self, round_: VotingRound) -> None:
+        self._clear_deadline_timer()
+        if async_track_point_in_time is not None and self._hass is not None:
+            self._deadline_unsub = async_track_point_in_time(
+                self._hass, self._deadline_reached, round_.voting_deadline
+            )
+
+    def _deadline_reached(self, _now: datetime) -> None:
+        self._hass.async_create_task(self._async_close_due_round())
+
+    async def _async_close_due_round(self) -> None:
+        try:
+            await self.async_close_round((await self._storage.async_get_voting_rounds())[-1].id)
+        except (IndexError, VotingError):
+            return
+        async_signal_update(self._hass)
+
+    async def async_stop(self) -> None:
+        """Stop scheduled voting callbacks during integration unload."""
+        self._clear_deadline_timer()
 
     async def async_create_round(
         self,
@@ -60,6 +93,7 @@ class VotingManager:
         now = datetime.now(UTC)
         round_ = VotingRound(str(uuid4()), len(existing) + 1, now, now + timedelta(minutes=deadline_minutes), meals_required, tuple(voter.id for voter in voters), status=VotingRoundStatus.ACTIVE)
         await self._storage.async_set_voting_round(round_)
+        self._schedule_deadline_timer(round_)
         self._fire_event(
             "wfd_voting_started",
             {
@@ -83,6 +117,7 @@ class VotingManager:
         if round_.status is not VotingRoundStatus.ACTIVE:
             raise VotingError("Voting round is not active")
         await self._storage.async_delete_voting_round(round_id)
+        self._clear_deadline_timer()
         self._fire_event("wfd_voting_cancelled", {"round_id": round_id})
 
     async def async_submit_vote(self, round_id: str, user_id: str, meal_ids: list[str]) -> None:
@@ -113,6 +148,7 @@ class VotingManager:
         now = now or datetime.now(UTC)
         if await self._storage.async_get_submitted_voter_count(round_id) < round_.voter_count and now < round_.voting_deadline:
             raise VotingError("Not all voters have submitted")
+        self._clear_deadline_timer()
         decision_round = replace(round_, closed_at=now, status=VotingRoundStatus.DECISION_GENERATED)
         await self._storage.async_set_voting_round(decision_round)
         current_votes = await self._storage.async_get_votes(round_id)
