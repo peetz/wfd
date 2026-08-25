@@ -223,6 +223,7 @@ class WfdPanel extends HTMLElement {
     const submitted = Number(voting.submitted || 0);
     const voterCount = Number(voting.voters || 0);
     const progress = voterCount ? Math.min(100, Math.round((submitted / voterCount) * 100)) : 0;
+    const selectionLimitReached = this._selectedMeals.size >= required;
     const selectedCards = activeMeals.map((meal) => `
       <label class="meal-option ${this._selectedMeals.has(meal.id) ? "chosen" : ""}">
         <input type="checkbox" data-meal="${this.escape(meal.id)}" ${this._selectedMeals.has(meal.id) ? "checked" : ""} ${alreadyVoted ? "disabled" : ""}>
@@ -239,7 +240,7 @@ class WfdPanel extends HTMLElement {
         <div class="meal-grid">${selectedCards}</div>
         ${alreadyVoted ? "" : `<button class="primary" data-action="submit-vote" ${this._busy.has("submit-vote") ? "disabled" : ""}>${this._busy.has("submit-vote") ? "Submitting..." : "Submit private vote"}</button>`}
       </section>
-      ${this.isAdmin ? `<section class="section"><button class="quiet" data-action="close-voting" ${this._busy.has("close-voting") ? "disabled" : ""}>${this._busy.has("close-voting") ? "Closing..." : "Close round"}</button></section>` : ""}`;
+      ${this.isAdmin ? `<section class="section"><button class="quiet" data-action="cancel-voting" ${this._busy.has("cancel-voting") ? "disabled" : ""}>${this._busy.has("cancel-voting") ? "Cancelling..." : "Cancel round"}</button></section>` : ""}`;
   }
 
   render() {
@@ -281,7 +282,18 @@ class WfdPanel extends HTMLElement {
     this.querySelectorAll("[data-action]").forEach((button) => button.addEventListener("click", () => this.action(button)));
     this.querySelector("#meals-required")?.addEventListener("input", (event) => { this._draftMealsRequired = Math.max(1, Number(event.target.value) || 1); event.target.value = this._draftMealsRequired; });
     this.querySelector("#deadline-minutes")?.addEventListener("input", (event) => { this._draftDeadlineMinutes = Math.max(1, Number(event.target.value) || 1); event.target.value = this._draftDeadlineMinutes; });
-    this.querySelectorAll("[data-meal]").forEach((input) => input.addEventListener("change", (event) => { if (event.target.checked) this._selectedMeals.add(event.target.dataset.meal); else this._selectedMeals.delete(event.target.dataset.meal); }));
+    this.querySelectorAll("[data-meal]").forEach((input) => input.addEventListener("change", (event) => {
+      const required = Number(this.voting.meals_required || 1);
+      if (event.target.checked && this._selectedMeals.size >= required) {
+        event.target.checked = false;
+        this._notice = `Choose exactly ${required} meals.`;
+        this.render();
+        return;
+      }
+      if (event.target.checked) this._selectedMeals.add(event.target.dataset.meal);
+      else this._selectedMeals.delete(event.target.dataset.meal);
+      this.render();
+    }));
   }
 
   async action(button) {
@@ -299,7 +311,7 @@ class WfdPanel extends HTMLElement {
       const ok = await this.call("submit_vote", { round_id: this.voting.round_id, meal_ids: [...this._selectedMeals] }, "submit-vote", "Private vote submitted.");
       if (ok && this.currentVoter) this.saveVote(this.voting.round_id, this.currentVoter.id, [...this._selectedMeals]);
     }
-    if (action === "close-voting") await this.call("close_voting", { round_id: this.voting.round_id }, "close-voting", "Round closed.");
+    if (action === "cancel-voting") await this.call("cancel_voting", { round_id: this.voting.round_id }, "cancel-voting", "Round cancelled.");
   }
 }
 
