@@ -21,15 +21,15 @@ WFD 1.0 provides the complete core workflow inside Home Assistant:
 
 ## Installation and setup
 
-See [docs/installation.md](docs/installation.md) for HACS installation, first setup, upgrades, and backup/recovery.
+See [docs/installation.md](docs/installation.md).
 
 ## Decision rules
 
-See [docs/decision-engine.md](docs/decision-engine.md) for the scoring, ranking, selection, and tie-breaking rules.
+See [docs/decision-engine.md](docs/decision-engine.md).
 
 ## Services and events
 
-See [docs/services.md](docs/services.md) for the supported Home Assistant services, entities, lifecycle events, and privacy guarantees.
+See [docs/services.md](docs/services.md).
 
 ## Development
 

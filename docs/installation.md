@@ -4,35 +4,35 @@
 
 1. Open HACS in Home Assistant.
 2. Open **Integrations** and search for **What's For Dinner**.
-3. Install the integration.
+3. Install WFD.
 4. Restart Home Assistant.
-5. Go to **Settings -> Devices & services -> Add integration**.
-6. Select **What's For Dinner** and choose the default meals-per-round and deadline.
-
-The integration stores its data in Home Assistant's `.storage/wfd.storage` file.
+5. Go to **Settings → Devices & services → Add integration**.
+6. Select **What's For Dinner** and complete the setup.
 
 ## First setup
 
-Create a Home Assistant Person for each household member and link each person's Home Assistant user account. WFD discovers active Person entities automatically.
+Create a Home Assistant Person for each household member and, where applicable, link that Person to the household member's Home Assistant user account.
 
-The Home Assistant users who should manage WFD must be Home Assistant administrators. Non-admin users can only access voting while a round is open, and can vote only as themselves.
+WFD uses Home Assistant Persons as the household identity source. WFD administrators must use Home Assistant administrator accounts. Non-admin users can vote while a round is open and can vote only as themselves.
+
+During setup you choose the default number of meals to select per round and the default voting deadline. These defaults can be overridden when an administrator starts a round.
 
 ## Upgrade
 
 1. Back up Home Assistant.
 2. Update WFD through HACS.
 3. Restart Home Assistant.
-4. Confirm the WFD panel loads and existing meals, voters, rounds, and results remain available.
+4. Open the WFD panel and confirm existing meals, voters, rounds and results are still present.
 
 ## Backup and recovery
 
-Stop Home Assistant before copying `.storage/wfd.storage`.
+WFD stores its data in Home Assistant's `.storage/wfd.storage` file.
 
-To restore:
+For backup or recovery:
 
 1. Stop Home Assistant.
-2. Replace `.storage/wfd.storage` with the backup.
+2. Copy the existing `wfd.storage` file to a safe location, or replace it with a known-good backup.
 3. Start Home Assistant.
-4. Confirm the WFD panel and completed results.
+4. Confirm the WFD panel and completed results load correctly.
 
 Never edit the storage file while Home Assistant is running.
