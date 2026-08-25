@@ -49,5 +49,11 @@ async def async_unload_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
     unload_platforms = getattr(hass.config_entries, "async_unload_platforms", None)
     if inspect.iscoroutinefunction(unload_platforms):
         await unload_platforms(entry, PLATFORMS)
-    hass.data.get("wfd", {}).pop(entry.entry_id, None)
+    wfd_data = hass.data.get("wfd", {})
+    entities = wfd_data.get("_entities", [])
+    wfd_data["_entities"] = [
+        entity for entity in entities
+        if getattr(entity, "_wfd_entry_id", None) != entry.entry_id
+    ]
+    wfd_data.pop(entry.entry_id, None)
     return True

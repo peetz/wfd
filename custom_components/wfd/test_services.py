@@ -86,3 +86,22 @@ async def test_cancel_voting_is_admin_only_and_calls_manager():
 
     voting.async_cancel_round.assert_awaited_once_with("round-1")
     assert "close_voting" not in registrations
+
+
+@pytest.mark.asyncio
+async def test_service_waits_for_registered_entity_refresh():
+    """A service does not return before WFD state is published."""
+    hass = Mock()
+    hass.data = {"wfd": {"_entities": []}}
+    registrations = {}
+    hass.services.async_register = lambda domain, service, handler: registrations.setdefault(service, handler)
+    library = Mock()
+    library.async_add_meal = AsyncMock()
+    entity = Mock()
+    entity._async_refresh = AsyncMock()
+    hass.data["wfd"]["_entities"].append(entity)
+
+    await async_setup_services(hass, library)
+    await registrations["add_meal"](Mock(data={"name": "Pizza"}))
+
+    entity._async_refresh.assert_awaited_once_with()

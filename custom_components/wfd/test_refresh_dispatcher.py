@@ -14,9 +14,10 @@ def test_refresh_signal_constant_exists():
     assert SIGNAL_WFD_UPDATED == "wfd_updated"
 
 
-def test_async_signal_update_is_callable_without_home_assistant():
+@pytest.mark.asyncio
+async def test_async_signal_update_is_callable_without_home_assistant():
     """The refresh helper should remain importable in unit tests."""
-    async_signal_update(None)
+    await async_signal_update(None)
 
 
 @pytest.mark.asyncio
