@@ -16,12 +16,18 @@ def test_manifest_and_hacs_metadata_are_release_ready():
     assert hacs["render_readme"] is True
 
 
-def test_v1_documentation_covers_installation_api_and_decisions():
+def test_v1_documentation_covers_installation_api_decisions_and_release_notes():
+    readme = ROOT / "README.md"
+    changelog = ROOT / "CHANGELOG.md"
+
     for path in (
-        ROOT / "README.md",
+        readme,
         ROOT / "docs/installation.md",
         ROOT / "docs/services.md",
         ROOT / "docs/decision-engine.md",
     ):
         assert path.exists()
         assert path.read_text().strip()
+
+    assert "1.0.0" in changelog.read_text()
+    assert "V1.1" in readme.read_text()
