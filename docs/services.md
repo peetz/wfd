@@ -6,7 +6,7 @@ WFD exposes services in the `wfd` domain.
 
 - `wfd.start_voting`: administrator-only; starts a private round. `meals_required` and `deadline_minutes` are optional and use the configured defaults.
 - `wfd.submit_vote`: submits an immutable vote for the signed-in Home Assistant user linked to a Person.
-- `wfd.cancel_voting`: administrator-only; cancels an active round without generating results. Rounds close automatically when all voters have submitted or the deadline has passed.
+- `wfd.cancel_voting`: administrator-only; cancels an active round and permanently removes the round, its votes, and any associated results. Cancellation is only available while the round is open. Rounds close automatically when all voters have submitted or the deadline has passed.
 - `wfd.add_meal`, `wfd.rename_meal`, `wfd.archive_meal`, `wfd.restore_meal`: manage meals.
 - `wfd.add_voter`, `wfd.archive_voter`, `wfd.restore_voter`: manage household voters.
 
@@ -21,4 +21,4 @@ WFD fires these Home Assistant events:
 - `wfd_results_available`: `round_id`, `selected_meals`, `meals_required`
 - `wfd_voting_cancelled`: `round_id`
 
-Event payloads contain no individual votes.
+Event payloads contain no individual votes. Cancellation is not written to round history; the cancellation event is only a transient notification.
