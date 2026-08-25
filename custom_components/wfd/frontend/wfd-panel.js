@@ -9,6 +9,8 @@ class WfdPanel extends HTMLElement {
     this._selectedMeals = new Set();
     this._selectionOwner = "";
     this._draftMealsRequired = 1;
+    this._draftDeadlineMinutes = 1440;
+    this._votingDefaultsLoaded = false;
     this._notice = "";
     this._formInteraction = false;
     this._lastSignature = "";
@@ -172,14 +174,25 @@ class WfdPanel extends HTMLElement {
 
   renderStartVoting() {
     const activeMeals = this.meals.filter((meal) => meal.active !== false);
+    if (!this._votingDefaultsLoaded) {
+      this._draftMealsRequired = Number(this.voting.default_meals_required || this._draftMealsRequired);
+      this._draftDeadlineMinutes = Number(this.voting.default_deadline_minutes || this._draftDeadlineMinutes);
+      this._votingDefaultsLoaded = true;
+    }
     return `
       <section class="voting-hero"><div><p class="eyebrow">Admin controls</p><h2>Start a voting round</h2>
         <p class="muted">Everyone will choose privately from the active meal list.</p></div><span class="status">Ready</span></section>
       ${this._notice ? `<div class="notice">${this.escape(this._notice)}</div>` : ""}
-      <section class="section"><label class="field"><span>Meals each person chooses</span>
-        <input id="meals-required" type="number" min="1" max="${activeMeals.length || 1}" step="1" value="${this._draftMealsRequired}">
-      </label><button class="primary" data-action="start-voting" ${this._busy.has("start-voting") ? "disabled" : ""}>
-        ${this._busy.has("start-voting") ? "Starting..." : "Start voting round"}</button></section>`;
+      <section class="section">
+        <label class="field"><span>Meals each person chooses</span>
+          <input id="meals-required" type="number" min="1" max="${activeMeals.length || 1}" step="1" value="${this._draftMealsRequired}">
+        </label>
+        <label class="field"><span>Voting deadline (minutes)</span>
+          <input id="deadline-minutes" type="number" min="1" step="1" value="${this._draftDeadlineMinutes}">
+        </label>
+        <button class="primary" data-action="start-voting" ${this._busy.has("start-voting") ? "disabled" : ""}>
+          ${this._busy.has("start-voting") ? "Starting..." : "Start voting round"}</button>
+      </section>`;
   }
 
   renderVoting() {
@@ -267,6 +280,7 @@ class WfdPanel extends HTMLElement {
     this.querySelectorAll("[data-tab]").forEach((button) => button.addEventListener("click", () => { this._activeTab = button.dataset.tab; this.render(); }));
     this.querySelectorAll("[data-action]").forEach((button) => button.addEventListener("click", () => this.action(button)));
     this.querySelector("#meals-required")?.addEventListener("input", (event) => { this._draftMealsRequired = Math.max(1, Number(event.target.value) || 1); event.target.value = this._draftMealsRequired; });
+    this.querySelector("#deadline-minutes")?.addEventListener("input", (event) => { this._draftDeadlineMinutes = Math.max(1, Number(event.target.value) || 1); event.target.value = this._draftDeadlineMinutes; });
     this.querySelectorAll("[data-meal]").forEach((input) => input.addEventListener("change", (event) => { if (event.target.checked) this._selectedMeals.add(event.target.dataset.meal); else this._selectedMeals.delete(event.target.dataset.meal); }));
   }
 
@@ -278,7 +292,7 @@ class WfdPanel extends HTMLElement {
     if (action === "add-voter") await this.call("add_voter", { person_id: button.dataset.id }, button.dataset.id, "Voter added.");
     if (action === "archive-voter") await this.call("archive_voter", { person_id: button.dataset.id }, button.dataset.id, "Voter archived.");
     if (action === "restore-voter") await this.call("restore_voter", { person_id: button.dataset.id }, button.dataset.id, "Voter restored.");
-    if (action === "start-voting") await this.call("start_voting", { meals_required: this._draftMealsRequired }, "start-voting", "Voting round started.");
+    if (action === "start-voting") await this.call("start_voting", { meals_required: this._draftMealsRequired, deadline_minutes: this._draftDeadlineMinutes }, "start-voting", "Voting round started.");
     if (action === "submit-vote") {
       const required = Number(this.voting.meals_required || 1);
       if (this._selectedMeals.size !== required) { this._notice = `Choose exactly ${required} meals before submitting.`; this.render(); return; }
