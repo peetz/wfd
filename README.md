@@ -2,30 +2,34 @@
 
 WFD is a Home Assistant integration for managing household meals, running private voting rounds, and selecting dinner through a deterministic, explainable decision engine.
 
-## V1.0 capabilities
+## V1.0
 
-- Installable as a custom integration through HACS.
-- Meal library with archive and restore.
-- Home Assistant Person-backed household voters.
-- Administrator-only round management using Home Assistant administrator accounts.
-- Private, immutable voting as the signed-in user.
-- Configurable default meal count and voting deadline.
-- Deterministic decision ranking using current votes, historical support, recency, and stable tie-breaking.
-- Persisted round history and explainable results.
-- Responsive Home Assistant panel for meals, household, voting, progress, and results.
-- Documented Home Assistant services and privacy-safe lifecycle events.
+WFD 1.0 provides the complete core workflow inside Home Assistant:
 
-## Install
+- HACS-installable custom integration with configuration flow
+- Meal library with add, rename, archive, and restore
+- Household voters backed by Home Assistant Persons
+- Administrator-only round management
+- Private, immutable voting as the signed-in Home Assistant user
+- Configurable meals-per-round and voting deadline
+- Automatic round completion
+- Deterministic, explainable decision ranking using current votes, historical support, recency, and stable tie-breaking
+- Persisted round history and results
+- Responsive Home Assistant panel for meals, household, voting, progress, and results
+- Documented services and privacy-safe lifecycle events
+- Immediate state refresh after successful WFD actions
+
+## Installation and setup
 
 See [docs/installation.md](docs/installation.md) for HACS installation, first setup, upgrades, and backup/recovery.
 
-## Decision behaviour
+## Decision rules
 
-See [docs/decision-engine.md](docs/decision-engine.md) for the scoring and tie-breaking rules.
+See [docs/decision-engine.md](docs/decision-engine.md) for the scoring, ranking, selection, and tie-breaking rules.
 
 ## Services and events
 
-See [docs/services.md](docs/services.md) for service fields, lifecycle events, and privacy guarantees.
+See [docs/services.md](docs/services.md) for the supported Home Assistant services, entities, lifecycle events, and privacy guarantees.
 
 ## Development
 
@@ -35,6 +39,6 @@ Run the test suite with:
 python -m pytest
 ```
 
-## V1.1
+## V1.1 roadmap
 
-Notifications, rich history analytics, frontend polish, expanded automation APIs, and optional Lovelace widgets are planned for v1.1.
+Planned follow-up work includes notifications, richer history analytics, frontend polish and UX refinement, expanded automation APIs, and optional reusable Lovelace widgets. These are tracked in the V1.1 GitHub milestone and do not change the core V1 workflow.
