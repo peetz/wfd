@@ -21,4 +21,4 @@ WFD fires these Home Assistant events:
 - `wfd_results_available`: `round_id`, `selected_meals`, `meals_required`
 - `wfd_voting_cancelled`: `round_id`
 
-Event payloads contain no individual votes. Cancellation is not written to round history; the cancellation event is only a transient notification.
+Event payloads contain no individual votes. Cancellation is not written to round history; the cancellation event is only a transient notification. A cancelled round can be started again using the same active meals.
