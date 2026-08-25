@@ -21,14 +21,29 @@ class VotingError(ValueError):
 class VotingManager:
     """Coordinate voting rounds without exposing individual votes."""
 
-    def __init__(self, storage: WFDStorage, meal_library, household) -> None:
+    def __init__(
+        self,
+        storage: WFDStorage,
+        meal_library,
+        household,
+        default_meals_required: int = 1,
+        default_deadline_minutes: int = 1440,
+    ) -> None:
         self._storage = storage
         self._meal_library = meal_library
         self._household = household
+        self._default_meals_required = default_meals_required
+        self._default_deadline_minutes = default_deadline_minutes
         self._decision_engine = DecisionEngine()
 
-    async def async_create_round(self, meals_required: int, deadline_minutes: int = 1440) -> VotingRound:
+    async def async_create_round(
+        self,
+        meals_required: int | None = None,
+        deadline_minutes: int | None = None,
+    ) -> VotingRound:
         """Create and activate a round using current active meals and voters."""
+        meals_required = meals_required or self._default_meals_required
+        deadline_minutes = deadline_minutes or self._default_deadline_minutes
         meals = await self._meal_library.async_get_meals(active_only=True)
         voters = await self._household.async_get_voters(active_only=True)
         if meals_required < 1 or meals_required > len(meals):
