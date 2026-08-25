@@ -17,6 +17,7 @@ def manager():
     storage.async_get_votes = AsyncMock(return_value=[])
     storage.async_get_results = AsyncMock(return_value=[])
     storage.async_set_voting_round = AsyncMock()
+    storage.async_delete_voting_round = AsyncMock()
     storage.async_get_voting_round = AsyncMock()
     storage.async_has_votes = AsyncMock()
     storage.async_add_vote = AsyncMock()
@@ -166,7 +167,7 @@ async def test_create_round_uses_configured_defaults(manager):
 
 
 @pytest.mark.asyncio
-async def test_cancel_round_marks_active_round_cancelled(manager):
+async def test_cancel_round_deletes_round_and_associated_records(manager):
     voting, storage, _, _ = manager
     created = datetime.now(UTC)
     active = VotingRound(
@@ -182,9 +183,8 @@ async def test_cancel_round_marks_active_round_cancelled(manager):
 
     await voting.async_cancel_round("round-1", now=created)
 
-    cancelled = storage.async_set_voting_round.await_args.args[0]
-    assert cancelled.status is VotingRoundStatus.CANCELLED
-    assert cancelled.closed_at == created
+    storage.async_delete_voting_round.assert_awaited_once_with("round-1")
+    storage.async_set_voting_round.assert_not_awaited()
 
 
 @pytest.mark.asyncio
