@@ -151,3 +151,54 @@ async def test_create_round_uses_configured_defaults(manager):
 
     assert round_.meals_required == 2
     assert round_.voting_deadline - round_.created_at == timedelta(minutes=30)
+
+
+@pytest.mark.asyncio
+async def test_cancel_round_marks_active_round_cancelled(manager):
+    voting, storage, _, _ = manager
+    created = datetime.now(UTC)
+    active = VotingRound(
+        id="round-1",
+        number=1,
+        created_at=created,
+        voting_deadline=created + timedelta(minutes=30),
+        meals_required=1,
+        voter_ids=("u1",),
+        status=VotingRoundStatus.ACTIVE,
+    )
+    storage.async_get_voting_round.return_value = active
+
+    await voting.async_cancel_round("round-1", now=created)
+
+    cancelled = storage.async_set_voting_round.await_args.args[0]
+    assert cancelled.status is VotingRoundStatus.CANCELLED
+    assert cancelled.closed_at == created
+
+
+@pytest.mark.asyncio
+async def test_public_state_auto_closes_when_all_voters_have_submitted(manager):
+    voting, storage, _, _ = manager
+    created = datetime.now(UTC)
+    active = VotingRound(
+        id="round-1",
+        number=1,
+        created_at=created,
+        voting_deadline=created + timedelta(minutes=30),
+        meals_required=1,
+        voter_ids=("u1",),
+        status=VotingRoundStatus.ACTIVE,
+    )
+    completed = MagicMock(
+        status=VotingRoundStatus.RESULTS_STORED,
+        id="round-1",
+        meals_required=1,
+        voter_count=1,
+    )
+    storage.async_get_voting_rounds.side_effect = [[active], [completed]]
+    storage.async_get_submitted_voter_count.return_value = 1
+    voting.async_close_round = AsyncMock()
+
+    state = await voting.async_get_public_state()
+
+    voting.async_close_round.assert_awaited_once_with("round-1")
+    assert state["status"] == "results_stored"
