@@ -1,97 +1,40 @@
 # What's For Dinner (WFD)
 
-A Home Assistant integration to help families decide what's for dinner by combining meal planning, household voting, and future recommendation features.
+WFD is a Home Assistant integration for managing household meals, running private voting rounds, and selecting dinner through a deterministic, explainable decision engine.
 
-## Overview
+## V1.0 capabilities
 
-WFD answers a simple question:
+- Installable as a custom integration through HACS.
+- Meal library with archive and restore.
+- Home Assistant Person-backed household voters.
+- Administrator-only round management using Home Assistant administrator accounts.
+- Private, immutable voting as the signed-in user.
+- Configurable default meal count and voting deadline.
+- Deterministic decision ranking using current votes, historical support, recency, and stable tie-breaking.
+- Persisted round history and explainable results.
+- Responsive Home Assistant panel for meals, household, voting, progress, and results.
+- Documented Home Assistant services and privacy-safe lifecycle events.
 
-> What's for dinner?
+## Install
 
-It provides the foundations for a family meal decision system inside Home Assistant.
+See [docs/installation.md](docs/installation.md) for HACS installation, first setup, upgrades, and backup/recovery.
 
-## Current capabilities
+## Decision behaviour
 
-- Meal library management
-- Persistent meal storage
-- Home Assistant People integration for household voters
-- Voter archive and restore support
-- Custom Home Assistant frontend panel foundation
+See [docs/decision-engine.md](docs/decision-engine.md) for the scoring and tie-breaking rules.
 
-## Planned capabilities
+## Services and events
 
-- Meal Library UI
-- Household management UI
-- Voting rounds
-- Meal voting workflows
-- Results and history
-- Meal recommendations based on household preferences
-- Optional Lovelace widgets
-
-## Frontend architecture
-
-WFD uses an application-style custom Home Assistant panel as the primary user experience.
-
-```
-                 WFD Core
-                    |
-        +-----------+-----------+
-        |                       |
-   Custom Panel          Lovelace Widgets
-   (primary UX)           (future option)
-```
-
-The custom panel provides a full app experience while Lovelace widgets remain a future option for dashboard users who want WFD data embedded elsewhere.
-
-## Development workflow
-
-Changes are developed incrementally through GitHub issues and pull requests.
-
-Standard workflow:
-
-1. Review the issue and confirm scope.
-2. Create a feature branch.
-3. Implement the change.
-4. Add or update tests.
-5. Open a pull request.
-6. Merge after CI passes.
-7. Update documentation and release notes.
-
-## Installation
-
-This project is currently under active development and is not yet published through HACS.
-
-For development/testing:
-
-1. Copy `custom_components/wfd` into your Home Assistant `custom_components` directory.
-2. Restart Home Assistant.
-3. Configure the integration from Home Assistant.
+See [docs/services.md](docs/services.md) for service fields, lifecycle events, and privacy guarantees.
 
 ## Development
 
-Clone the repository:
-
-```bash
-git clone https://github.com/peetz/wfd.git
-cd wfd
-```
-
-Run tests:
+Run the test suite with:
 
 ```bash
 python -m pytest
 ```
 
-## Project status
+## V1.1
 
-WFD is being developed incrementally with features tracked through GitHub milestones and issues.
-
-See:
-
-- `docs/` for project documentation
-- GitHub Issues for planned work
-- Pull Requests for completed changes
-
-## License
-
-See [LICENSE](LICENSE).
+Notifications, rich history analytics, frontend polish, expanded automation APIs, and optional Lovelace widgets are planned for v1.1.
