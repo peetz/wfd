@@ -1,9 +1,12 @@
 {
   "domain": "wfd",
   "name": "What's For Dinner",
-  "version": "1.0.0",
-  "documentation": "https://github.com/peetz/wfd",
-  "requirements": [],
   "codeowners": ["@peetz"],
-  "config_flow": true
+  "config_flow": true,
+  "dependencies": ["http"],
+  "documentation": "https://github.com/peetz/wfd",
+  "issue_tracker": "https://github.com/peetz/wfd/issues",
+  "iot_class": "local_polling",
+  "requirements": [],
+  "version": "1.0.0"
 }
