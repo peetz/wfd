@@ -4,13 +4,9 @@ from __future__ import annotations
 
 try:
     from homeassistant.components.sensor import SensorEntity
-    from homeassistant.helpers.dispatcher import async_dispatcher_connect
 except ModuleNotFoundError:
     class SensorEntity:
         """Test fallback."""
-
-    def async_dispatcher_connect(*args, **kwargs):
-        return lambda: None
 
 from .updates import SIGNAL_WFD_UPDATED
 
@@ -18,11 +14,15 @@ from .updates import SIGNAL_WFD_UPDATED
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up WFD sensors."""
     data = hass.data["wfd"][entry.entry_id]
-    async_add_entities([
+    entities = [
         WFDMealLibrarySensor(hass, data["meal_library"]),
         WFDHouseholdSensor(hass, data["household"]),
         WFDVotingSensor(hass, data["voting"]),
-    ])
+    ]
+    for entity in entities:
+        entity._wfd_entry_id = entry.entry_id
+    hass.data["wfd"].setdefault("_entities", []).extend(entities)
+    async_add_entities(entities)
 
 
 class WFDBaseSensor(SensorEntity):
@@ -30,9 +30,6 @@ class WFDBaseSensor(SensorEntity):
 
     def __init__(self, hass):
         self._hass = hass
-
-    async def async_added_to_hass(self):
-        self.async_on_remove(async_dispatcher_connect(self._hass, SIGNAL_WFD_UPDATED, self._refresh))
 
     def _refresh(self):
         """Refresh and publish the entity without waiting for HA polling."""
