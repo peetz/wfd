@@ -31,7 +31,7 @@ async def async_setup_services(hass: "HomeAssistant", meal_library, household=No
     async def run(method, *args):
         try:
             result = await method(*args)
-            async_signal_update(hass)
+            await async_signal_update(hass)
             return result
         except Exception as exc:
             raise _raise_service_error(exc) from exc
