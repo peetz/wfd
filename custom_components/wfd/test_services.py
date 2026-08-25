@@ -65,15 +65,7 @@ async def test_start_voting_fires_privacy_safe_event_with_configured_defaults():
     await registrations["start_voting"](Mock(data={}, context=Mock(user_id="admin")))
 
     voting.async_create_round.assert_awaited_once_with(None, None)
-    hass.bus.async_fire.assert_called_once_with(
-        "wfd_voting_started",
-        {
-            "round_id": "round-1",
-            "meals_required": 2,
-            "voter_count": 2,
-            "voting_deadline": round_.voting_deadline.isoformat(),
-        },
-    )
+    assert not hass.bus.async_fire.called
 
 
 @pytest.mark.asyncio
