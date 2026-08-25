@@ -21,6 +21,10 @@ class VotingError(ValueError):
 class VotingManager:
     """Coordinate voting rounds without exposing individual votes."""
 
+    def _fire_event(self, event_type: str, data: dict) -> None:
+        if self._hass is not None and hasattr(self._hass, "bus"):
+            self._hass.bus.async_fire(event_type, data)
+
     def __init__(
         self,
         storage: WFDStorage,
@@ -28,12 +32,14 @@ class VotingManager:
         household,
         default_meals_required: int = 1,
         default_deadline_minutes: int = 1440,
+        hass=None,
     ) -> None:
         self._storage = storage
         self._meal_library = meal_library
         self._household = household
         self._default_meals_required = default_meals_required
         self._default_deadline_minutes = default_deadline_minutes
+        self._hass = hass
         self._decision_engine = DecisionEngine()
 
     async def async_create_round(
@@ -54,11 +60,31 @@ class VotingManager:
         now = datetime.now(UTC)
         round_ = VotingRound(str(uuid4()), len(existing) + 1, now, now + timedelta(minutes=deadline_minutes), meals_required, tuple(voter.id for voter in voters), status=VotingRoundStatus.ACTIVE)
         await self._storage.async_set_voting_round(round_)
+        self._fire_event(
+            "wfd_voting_started",
+            {
+                "round_id": round_.id,
+                "meals_required": round_.meals_required,
+                "voter_count": round_.voter_count,
+                "voting_deadline": round_.voting_deadline.isoformat(),
+            },
+        )
         return round_
 
     async def async_get_round(self, round_id: str) -> VotingRound | None:
         """Return a round for service event metadata."""
         return await self._storage.async_get_voting_round(round_id)
+
+    async def async_cancel_round(self, round_id: str, now: datetime | None = None) -> None:
+        """Cancel an active round without generating results."""
+        round_ = await self._storage.async_get_voting_round(round_id)
+        if round_ is None:
+            raise VotingError("Unknown voting round")
+        if round_.status is not VotingRoundStatus.ACTIVE:
+            raise VotingError("Voting round is not active")
+        cancelled = replace(round_, closed_at=now or datetime.now(UTC), status=VotingRoundStatus.CANCELLED)
+        await self._storage.async_set_voting_round(cancelled)
+        self._fire_event("wfd_voting_cancelled", {"round_id": round_id})
 
     async def async_submit_vote(self, round_id: str, user_id: str, meal_ids: list[str]) -> None:
         """Validate and persist one voter's private selections."""
@@ -113,6 +139,13 @@ class VotingManager:
         for result in results:
             await self._storage.async_add_result(result)
         await self._storage.async_mark_round_results_stored(replace(round_, closed_at=now, status=VotingRoundStatus.RESULTS_STORED))
+        event_data = {
+            "round_id": round_id,
+            "selected_meals": [result.meal_id for result in results if result.selected],
+            "meals_required": round_.meals_required,
+        }
+        self._fire_event("wfd_voting_completed", event_data)
+        self._fire_event("wfd_results_available", event_data)
         return results
 
     async def async_get_public_state(self) -> dict:
@@ -120,10 +153,14 @@ class VotingManager:
         rounds = await self._storage.async_get_voting_rounds()
         active = next((item for item in reversed(rounds) if item.status is VotingRoundStatus.ACTIVE), None)
         if active is not None:
+            submitted = await self._storage.async_get_submitted_voter_count(active.id)
+            if submitted >= active.voter_count or datetime.now(UTC) >= active.voting_deadline:
+                await self.async_close_round(active.id)
+                return await self.async_get_public_state()
             return {
                 "status": active.status.value,
                 "round_id": active.id,
-                "submitted": await self._storage.async_get_submitted_voter_count(active.id),
+                "submitted": submitted,
                 "voters": active.voter_count,
                 "meals_required": active.meals_required,
                 "default_meals_required": self._default_meals_required,
