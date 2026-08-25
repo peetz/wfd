@@ -5,6 +5,12 @@ from typing import TYPE_CHECKING
 from .errors import DuplicateMealError, InvalidMealNameError, MealNotFoundError, VoterNotFoundError, VoterUnavailableError
 from .updates import async_signal_update
 
+try:
+    from homeassistant.exceptions import HomeAssistantError
+except ModuleNotFoundError:
+    class HomeAssistantError(Exception):
+        """Test fallback when Home Assistant is unavailable."""
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
@@ -15,7 +21,6 @@ START_VOTING, SUBMIT_VOTE, CLOSE_VOTING = "start_voting", "submit_vote", "close_
 
 
 def _raise_service_error(exc: Exception) -> Exception:
-    from homeassistant.exceptions import HomeAssistantError
     if isinstance(exc, (MealNotFoundError, DuplicateMealError, InvalidMealNameError, VoterNotFoundError, VoterUnavailableError)):
         return HomeAssistantError(str(exc))
     return exc
@@ -32,7 +37,6 @@ async def async_setup_services(hass: "HomeAssistant", meal_library, household=No
             raise _raise_service_error(exc) from exc
 
     async def require_admin(call):
-        from homeassistant.exceptions import HomeAssistantError
         if household is None or not await household.async_is_admin_user(getattr(call.context, "user_id", None)):
             raise HomeAssistantError("Only the designated WFD administrator can manage voting rounds")
 
@@ -92,7 +96,6 @@ async def async_setup_services(hass: "HomeAssistant", meal_library, household=No
     async def submit_vote(call):
         voter = await household.async_get_voter_for_user(getattr(call.context, "user_id", None))
         if voter is None:
-            from homeassistant.exceptions import HomeAssistantError
             raise HomeAssistantError("Your Home Assistant user is not linked to an active WFD Person")
         await run(voting.async_submit_vote, call.data["round_id"], voter.id, call.data["meal_ids"])
 
