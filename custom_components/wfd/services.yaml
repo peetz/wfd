@@ -113,9 +113,9 @@ submit_vote:
       selector:
         object
 
-close_voting:
-  name: Close voting
-  description: Close a round after all votes are in or its deadline is reached.
+cancel_voting:
+  name: Cancel voting
+  description: Cancel an active voting round without generating results. Administrator only.
   fields:
     round_id:
       name: Round ID

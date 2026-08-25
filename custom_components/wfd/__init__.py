@@ -27,6 +27,7 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
         household,
         default_meals_required=entry.data.get("default_meals_required", 1),
         default_deadline_minutes=entry.data.get("default_deadline_minutes", 1440),
+        hass=hass,
     )
     hass.data.setdefault("wfd", {})[entry.entry_id] = {"storage": storage, "meal_library": meal_library, "household": household, "voting": voting}
     await async_setup_services(hass, meal_library, household, voting)

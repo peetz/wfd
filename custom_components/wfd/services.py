@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 DOMAIN = "wfd"
 ADD_MEAL, RENAME_MEAL, ARCHIVE_MEAL, RESTORE_MEAL = "add_meal", "rename_meal", "archive_meal", "restore_meal"
 ADD_VOTER, ARCHIVE_VOTER, RESTORE_VOTER = "add_voter", "archive_voter", "restore_voter"
-START_VOTING, SUBMIT_VOTE, CLOSE_VOTING = "start_voting", "submit_vote", "close_voting"
+START_VOTING, SUBMIT_VOTE, CANCEL_VOTING = "start_voting", "submit_vote", "cancel_voting"
 
 
 def _raise_service_error(exc: Exception) -> Exception:
@@ -71,26 +71,12 @@ async def async_setup_services(hass: "HomeAssistant", meal_library, household=No
     if voting is None:
         return
 
-    def fire_event(event_type, data):
-        """Fire a privacy-safe WFD lifecycle event when HA is available."""
-        if hasattr(hass, "bus") and hasattr(hass.bus, "async_fire"):
-            hass.bus.async_fire(event_type, data)
-
     async def start_voting(call):
         await require_admin(call)
-        round_ = await run(
+        await run(
             voting.async_create_round,
             call.data.get("meals_required"),
             call.data.get("deadline_minutes"),
-        )
-        fire_event(
-            "wfd_voting_started",
-            {
-                "round_id": round_.id,
-                "meals_required": round_.meals_required,
-                "voter_count": round_.voter_count,
-                "voting_deadline": round_.voting_deadline.isoformat(),
-            },
         )
 
     async def submit_vote(call):
@@ -99,18 +85,9 @@ async def async_setup_services(hass: "HomeAssistant", meal_library, household=No
             raise HomeAssistantError("Your Home Assistant user is not linked to an active WFD Person")
         await run(voting.async_submit_vote, call.data["round_id"], voter.id, call.data["meal_ids"])
 
-    async def close_voting(call):
+    async def cancel_voting(call):
         await require_admin(call)
-        results = await run(voting.async_close_round, call.data["round_id"])
-        round_ = await voting.async_get_round(call.data["round_id"])
-        selected_meals = [result.meal_id for result in results if result.selected]
-        event_data = {
-            "round_id": call.data["round_id"],
-            "selected_meals": selected_meals,
-            "meals_required": round_.meals_required if round_ else len(selected_meals),
-        }
-        fire_event("wfd_voting_completed", event_data)
-        fire_event("wfd_results_available", event_data)
+        await run(voting.async_cancel_round, call.data["round_id"])
 
-    for name, handler in ((START_VOTING, start_voting), (SUBMIT_VOTE, submit_vote), (CLOSE_VOTING, close_voting)):
+    for name, handler in ((START_VOTING, start_voting), (SUBMIT_VOTE, submit_vote), (CANCEL_VOTING, cancel_voting)):
         hass.services.async_register(DOMAIN, name, handler)

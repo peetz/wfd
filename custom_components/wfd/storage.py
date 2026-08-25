@@ -69,6 +69,17 @@ class WFDStorage:
         self._data["rounds"][voting_round.id] = _serialize_round(voting_round)
         await self.async_save()
 
+    async def async_delete_voting_round(self, round_id: str) -> None:
+        """Remove a cancelled round and every record associated with it."""
+        self._data["rounds"].pop(round_id, None)
+        self._data["votes"] = [
+            item for item in self._data["votes"] if item["round_id"] != round_id
+        ]
+        self._data["results"] = [
+            item for item in self._data["results"] if item["round_id"] != round_id
+        ]
+        await self.async_save()
+
     async def async_get_voting_round(self, round_id: str) -> VotingRound | None:
         data = self._data["rounds"].get(round_id)
         return deserialize_round(data) if data else None

@@ -29,6 +29,11 @@ def test_frontend_has_role_based_voting_and_archive_hooks():
     assert "votes_received" in content
     assert "tiebreak_label" in content
     assert "renderStartVoting()" in content
+    assert "default_meals_required" in content
+    assert "default_deadline_minutes" in content
+    assert "deadline-minutes" in content
+    assert "selectionLimitReached" in content
+    assert "cancel-voting" in content
     assert 'voting.status === "results_stored"' in content
 
 def test_frontend_signature_avoids_unrelated_refresh_renders():
