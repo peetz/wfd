@@ -13,7 +13,6 @@ class VotingRoundStatus(StrEnum):
     CLOSED = "closed"
     DECISION_GENERATED = "decision_generated"
     RESULTS_STORED = "results_stored"
-    CANCELLED = "cancelled"
 
 
 @dataclass(frozen=True, slots=True)
