@@ -1,16 +1,31 @@
-# WFD Services and Events
+# WFD Home Assistant Services and Events
 
-WFD exposes services in the `wfd` domain.
+WFD exposes services in the `wfd` domain. The WFD panel uses the same services and entities; business logic is not duplicated in the frontend.
 
-## Services
+## Voting services
 
-- `wfd.start_voting`: administrator-only; starts a private round. `meals_required` and `deadline_minutes` are optional and use the configured defaults.
-- `wfd.submit_vote`: submits an immutable vote for the signed-in Home Assistant user linked to a Person.
-- `wfd.cancel_voting`: administrator-only; cancels an active round and permanently removes the round, its votes, and any associated results. Cancellation is only available while the round is open. Rounds close automatically when all voters have submitted or the deadline has passed.
-- `wfd.add_meal`, `wfd.rename_meal`, `wfd.archive_meal`, `wfd.restore_meal`: manage meals.
-- `wfd.add_voter`, `wfd.archive_voter`, `wfd.restore_voter`: manage household voters.
+- `wfd.start_voting` — administrator-only. Starts a private round. `meals_required` and `deadline_minutes` are optional and use the configured defaults.
+- `wfd.submit_vote` — submits the signed-in Home Assistant user's immutable vote. The user must be linked to a WFD voter Person.
+- `wfd.cancel_voting` — administrator-only. Cancels an active round and removes its transient round data. Cancellation is not added to voting history.
 
-The `sensor.wfd_voting` entity exposes progress while a round is active and ranked result details after completion. Individual votes and voter identities are never exposed.
+Rounds close automatically when all eligible voters have submitted their votes or when the deadline is reached.
+
+## Meal services
+
+- `wfd.add_meal`
+- `wfd.rename_meal`
+- `wfd.archive_meal`
+- `wfd.restore_meal`
+
+## Household services
+
+- `wfd.add_voter`
+- `wfd.archive_voter`
+- `wfd.restore_voter`
+
+## Voting state
+
+`sensor.wfd_voting` exposes public voting progress while a round is active and ranked result details after completion. Individual votes and voter identities are never exposed through the sensor.
 
 ## Events
 
@@ -21,4 +36,4 @@ WFD fires these Home Assistant events:
 - `wfd_results_available`: `round_id`, `selected_meals`, `meals_required`
 - `wfd_voting_cancelled`: `round_id`
 
-Event payloads contain no individual votes. Cancellation is not written to round history; the cancellation event is only a transient notification. A cancelled round can be started again using the same active meals.
+Event payloads contain no individual votes. Cancellation is a transient event only and does not create a historical round.
