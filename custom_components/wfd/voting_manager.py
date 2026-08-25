@@ -42,8 +42,8 @@ class VotingManager:
         deadline_minutes: int | None = None,
     ) -> VotingRound:
         """Create and activate a round using current active meals and voters."""
-        meals_required = meals_required or self._default_meals_required
-        deadline_minutes = deadline_minutes or self._default_deadline_minutes
+        meals_required = self._default_meals_required if meals_required is None else meals_required
+        deadline_minutes = self._default_deadline_minutes if deadline_minutes is None else deadline_minutes
         meals = await self._meal_library.async_get_meals(active_only=True)
         voters = await self._household.async_get_voters(active_only=True)
         if meals_required < 1 or meals_required > len(meals):
@@ -55,6 +55,10 @@ class VotingManager:
         round_ = VotingRound(str(uuid4()), len(existing) + 1, now, now + timedelta(minutes=deadline_minutes), meals_required, tuple(voter.id for voter in voters), status=VotingRoundStatus.ACTIVE)
         await self._storage.async_set_voting_round(round_)
         return round_
+
+    async def async_get_round(self, round_id: str) -> VotingRound | None:
+        """Return a round for service event metadata."""
+        return await self._storage.async_get_voting_round(round_id)
 
     async def async_submit_vote(self, round_id: str, user_id: str, meal_ids: list[str]) -> None:
         """Validate and persist one voter's private selections."""
