@@ -21,6 +21,10 @@ async def async_register_frontend(hass) -> None:
     from homeassistant.components import frontend
     from homeassistant.components.http import StaticPathConfig
 
+    wfd_data = hass.data.setdefault("wfd", {})
+    if wfd_data.get("_frontend_registered"):
+        return
+
     frontend_file = Path(__file__).parent / "frontend" / "wfd-panel.js"
 
     await hass.http.async_register_static_paths(
@@ -47,3 +51,5 @@ async def async_register_frontend(hass) -> None:
             }
         },
     )
+
+    wfd_data["_frontend_registered"] = True
