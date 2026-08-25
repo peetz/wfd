@@ -35,7 +35,12 @@ class WFDBaseSensor(SensorEntity):
         self.async_on_remove(async_dispatcher_connect(self._hass, SIGNAL_WFD_UPDATED, self._refresh))
 
     def _refresh(self):
-        self.async_schedule_update_ha_state(True)
+        """Refresh and publish the entity without waiting for HA polling."""
+        self._hass.async_create_task(self._async_refresh())
+
+    async def _async_refresh(self) -> None:
+        await self.async_update()
+        self.async_write_ha_state()
 
 
 class WFDMealLibrarySensor(WFDBaseSensor):
