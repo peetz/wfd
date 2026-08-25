@@ -11,6 +11,10 @@ except ModuleNotFoundError:
 SIGNAL_WFD_UPDATED = "wfd_updated"
 
 
-def async_signal_update(hass):
-    """Notify WFD entities that data changed."""
+async def async_signal_update(hass) -> None:
+    """Refresh registered entities before the service call returns."""
     async_dispatcher_send(hass, SIGNAL_WFD_UPDATED)
+    entities = hass.data.get("wfd", {}).get("_entities", [])
+    await __import__("asyncio").gather(
+        *(entity._async_refresh() for entity in entities)
+    )
