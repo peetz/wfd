@@ -43,6 +43,7 @@ async def async_unload_entry(hass: "HomeAssistant", entry: "ConfigEntry"):
     data = hass.data.get("wfd", {}).get(entry.entry_id)
     if data is not None:
         await data["household"].async_stop()
+        await data["voting"].async_stop()
     unload_platforms = getattr(hass.config_entries, "async_unload_platforms", None)
     if inspect.iscoroutinefunction(unload_platforms):
         await unload_platforms(entry, PLATFORMS)
