@@ -1,10 +1,8 @@
-# Decision Engine Rules
+# WFD Decision Engine Rules
 
-The decision engine ranks every active meal when a voting round closes.
+When a voting round closes, WFD ranks the active meals deterministically and selects exactly `meals_required` meals.
 
-## Priority
-
-Ranking is lexicographic and deterministic:
+## Ranking priority
 
 1. Current-round vote score
 2. Historical score
@@ -12,7 +10,7 @@ Ranking is lexicographic and deterministic:
 4. Meal name, case-insensitive
 5. Meal ID
 
-Lower-priority values never override a higher-priority value.
+A lower-priority value never overrides a higher-priority value.
 
 ## Scores
 
@@ -24,7 +22,7 @@ A round with no voters contributes zero.
 
 ### Historical score
 
-For every completed round, calculate the meal's normalised vote score using that round's voter count. The historical score is the arithmetic mean across all completed rounds. A meal with no votes in a completed round contributes zero, so zero-vote rounds remain part of the calculation.
+For each completed round, calculate the meal's normalised vote score using that round's voter count. The historical score is the arithmetic mean across completed rounds. Zero-vote rounds therefore remain part of the calculation.
 
 ### Recency score
 
@@ -34,10 +32,10 @@ For a meal selected in the most recent completed round:
 
 A meal selected in the immediately preceding round scores `1.0`. Older selections score less. A meal with no selection history scores `0.0`.
 
-Recency is based on final selected results, not merely receiving a vote.
+Recency is based on the final selected results, not simply on receiving votes.
 
-## Selection and explanations
+## Results
 
-Meals are sorted by the priority order above and exactly `meals_required` meals are marked selected. Every stored result contains all component scores, its rank, and a plain-language explanation. Name and ID provide stable results when all decision scores tie.
+Every stored result contains the component scores, rank and a plain-language explanation. Meal name and ID provide stable tie-breaking when all scores are equal.
 
 Archived meals are excluded from the decision.
