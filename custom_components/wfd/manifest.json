@@ -6,5 +6,7 @@
   "issue_tracker": "https://github.com/peetz/wfd/issues",
   "requirements": [],
   "codeowners": ["@peetz"],
-  "config_flow": true
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "dependencies": ["http"]
 }
