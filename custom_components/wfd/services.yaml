@@ -7,42 +7,45 @@ add_meal:
       description: Meal name.
       required: true
       selector:
-        text:
+        text: {}
 
 rename_meal:
   name: Rename meal
   description: Rename an existing meal.
+  target: {}
   fields:
     meal_id:
       name: Meal ID
       required: true
       selector:
-        text
+        text: {}
     name:
       name: Name
       required: true
       selector:
-        text
+        text: {}
 
 archive_meal:
   name: Archive meal
   description: Archive a meal without deleting it.
+  target: {}
   fields:
     meal_id:
       name: Meal ID
       required: true
       selector:
-        text
+        text: {}
 
 restore_meal:
   name: Restore meal
   description: Restore an archived meal.
+  target: {}
   fields:
     meal_id:
       name: Meal ID
       required: true
       selector:
-        text
+        text: {}
 
 add_voter:
   name: Add voter
@@ -101,24 +104,26 @@ start_voting:
 submit_vote:
   name: Submit vote
   description: Submit an immutable private vote for a voting round.
+  target: {}
   fields:
     round_id:
       name: Round ID
       required: true
       selector:
-        text
+        text: {}
     meal_ids:
       name: Meal IDs
       required: true
       selector:
-        object
+        object: {}
 
 cancel_voting:
   name: Cancel voting
   description: Cancel an active voting round without generating results. Administrator only.
+  target: {}
   fields:
     round_id:
       name: Round ID
       required: true
       selector:
-        text
+        text: {}
