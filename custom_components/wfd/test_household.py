@@ -113,3 +113,44 @@ async def test_unknown_person_cannot_be_added(storage: WFDStorage) -> None:
     service = household(storage)
     with pytest.raises(Exception, match="Home Assistant Person not found"):
         await service.async_add_voter("person.unknown")
+
+
+@pytest.mark.asyncio
+async def test_household_sensor_contract_data(storage: WFDStorage) -> None:
+    service = household(storage)
+    await service.async_sync()
+    await service.async_archive_voter("person.clare")
+
+    voters = await service.async_get_voters(active_only=False)
+    available = service.async_get_available_persons()
+
+    assert sorted(
+        [
+            {"id": voter.id, "name": voter.name, "active": voter.active}
+            for voter in voters
+        ],
+        key=lambda voter: voter["id"],
+    ) == [
+        {"id": "person.clare", "name": "Clare", "active": False},
+        {"id": "person.steve", "name": "Steve", "active": True},
+    ]
+    assert available == [
+        {"id": "person.clare", "name": "Clare"},
+        {"id": "person.steve", "name": "Steve"},
+    ]
+
+@pytest.mark.asyncio
+async def test_resolves_linked_ha_user_and_uses_ha_admin_permission(storage) -> None:
+    """Voting identity and admin access come from Home Assistant."""
+    service = household(storage)
+    service._hass.states.async_all.return_value[0].attributes = {"user_id": "ha-steve"}
+    service._hass.states.async_all.return_value[1].attributes = {"user_id": "ha-clare"}
+    service._hass.auth.async_get_user = AsyncMock(side_effect=[
+        MagicMock(is_admin=True),
+        MagicMock(is_admin=False),
+    ])
+    await service.async_sync()
+
+    assert (await service.async_get_voter_for_user("ha-steve")).id == "person.steve"
+    assert await service.async_is_admin_user("ha-steve") is True
+    assert await service.async_is_admin_user("ha-clare") is False

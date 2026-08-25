@@ -17,12 +17,12 @@ rename_meal:
       name: Meal ID
       required: true
       selector:
-        text:
+        text
     name:
       name: Name
       required: true
       selector:
-        text:
+        text
 
 archive_meal:
   name: Archive meal
@@ -32,7 +32,7 @@ archive_meal:
       name: Meal ID
       required: true
       selector:
-        text:
+        text
 
 restore_meal:
   name: Restore meal
@@ -42,7 +42,7 @@ restore_meal:
       name: Meal ID
       required: true
       selector:
-        text:
+        text
 
 add_voter:
   name: Add voter
@@ -50,7 +50,6 @@ add_voter:
   fields:
     person_id:
       name: Person
-      description: Home Assistant Person entity ID.
       required: true
       selector:
         entity:
@@ -58,7 +57,7 @@ add_voter:
 
 archive_voter:
   name: Archive voter
-  description: Archive a WFD voter while preserving their identity for history.
+  description: Archive a WFD voter.
   fields:
     person_id:
       name: Person
@@ -77,3 +76,49 @@ restore_voter:
       selector:
         entity:
           domain: person
+
+start_voting:
+  name: Start voting
+  description: Start a new private household voting round.
+  fields:
+    meals_required:
+      name: Meals required
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          mode: box
+    deadline_minutes:
+      name: Deadline in minutes
+      required: false
+      default: 1440
+      selector:
+        number:
+          min: 1
+          mode: box
+
+submit_vote:
+  name: Submit vote
+  description: Submit an immutable private vote for a voting round.
+  fields:
+    round_id:
+      name: Round ID
+      required: true
+      selector:
+        text
+    meal_ids:
+      name: Meal IDs
+      required: true
+      selector:
+        object
+
+cancel_voting:
+  name: Cancel voting
+  description: Cancel an active voting round without generating results. Administrator only.
+  fields:
+    round_id:
+      name: Round ID
+      required: true
+      selector:
+        text

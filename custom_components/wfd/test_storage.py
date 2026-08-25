@@ -122,6 +122,34 @@ async def test_completed_round_rejects_votes_and_updates(storage: WFDStorage) ->
 
 
 @pytest.mark.asyncio
+async def test_delete_round_removes_round_votes_and_results(storage: WFDStorage) -> None:
+    """Cancelling a round leaves no persisted round data behind."""
+    round_ = active_round()
+    storage._data["rounds"][round_.id] = {
+        **storage_round_data(round_),
+    }
+    storage._data["votes"] = [
+        {"round_id": round_.id, "user_id": "user-1", "meal_id": "meal-1"},
+        {"round_id": "other", "user_id": "user-1", "meal_id": "meal-2"},
+    ]
+    storage._data["results"] = [
+        {"round_id": round_.id, "meal_id": "meal-1"},
+        {"round_id": "other", "meal_id": "meal-2"},
+    ]
+
+    await storage.async_delete_voting_round(round_.id)
+
+    assert round_.id not in storage._data["rounds"]
+    assert storage._data["votes"] == [
+        {"round_id": "other", "user_id": "user-1", "meal_id": "meal-2"}
+    ]
+    assert storage._data["results"] == [
+        {"round_id": "other", "meal_id": "meal-2"}
+    ]
+    storage._store.async_save.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_result_requires_decision_generated_round(storage: WFDStorage) -> None:
     """Results can only be written after decision generation."""
     await storage.async_set_meal(Meal(id="meal-1", name="Pizza"))
