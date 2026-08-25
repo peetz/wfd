@@ -131,3 +131,23 @@ async def test_close_round_uses_decision_engine_and_persists_all_results(manager
     assert [result.meal_id for result in results] == ["meal-2", "meal-1"]
     assert storage.async_add_result.await_count == 2
     storage.async_mark_round_results_stored.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_create_round_uses_configured_defaults(manager):
+    _, storage, meals, household = manager
+    voting = VotingManager(
+        storage,
+        meals,
+        household,
+        default_meals_required=2,
+        default_deadline_minutes=30,
+    )
+    meals.async_get_meals.return_value = [Meal("m1", "Pizza"), Meal("m2", "Pasta")]
+    household.async_get_voters.return_value = [User("u1", "Alex")]
+    storage.async_get_voting_rounds.return_value = []
+
+    round_ = await voting.async_create_round()
+
+    assert round_.meals_required == 2
+    assert round_.voting_deadline - round_.created_at == timedelta(minutes=30)
