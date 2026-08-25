@@ -99,7 +99,7 @@ async def async_setup_services(hass: "HomeAssistant", meal_library, household=No
     async def close_voting(call):
         await require_admin(call)
         results = await run(voting.async_close_round, call.data["round_id"])
-        round_ = await voting._storage.async_get_voting_round(call.data["round_id"])
+        round_ = await voting.async_get_round(call.data["round_id"])
         selected_meals = [result.meal_id for result in results if result.selected]
         event_data = {
             "round_id": call.data["round_id"],
