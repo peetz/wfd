@@ -126,6 +126,8 @@ class VotingManager:
                 "submitted": await self._storage.async_get_submitted_voter_count(active.id),
                 "voters": active.voter_count,
                 "meals_required": active.meals_required,
+                "default_meals_required": self._default_meals_required,
+                "default_deadline_minutes": self._default_deadline_minutes,
             }
         latest = rounds[-1] if rounds else None
         if latest is not None and latest.status is VotingRoundStatus.RESULTS_STORED:
@@ -169,5 +171,15 @@ class VotingManager:
                 "selected_meals": [result.meal_id for result in results if result.selected],
                 "results": public_results,
                 "meals_required": latest.meals_required,
+                "default_meals_required": self._default_meals_required,
+                "default_deadline_minutes": self._default_deadline_minutes,
             }
-        return {"status": "idle", "round_id": None, "submitted": 0, "voters": 0, "meals_required": 0}
+        return {
+            "status": "idle",
+            "round_id": None,
+            "submitted": 0,
+            "voters": 0,
+            "meals_required": 0,
+            "default_meals_required": self._default_meals_required,
+            "default_deadline_minutes": self._default_deadline_minutes,
+        }
