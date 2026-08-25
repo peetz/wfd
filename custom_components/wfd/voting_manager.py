@@ -82,8 +82,7 @@ class VotingManager:
             raise VotingError("Unknown voting round")
         if round_.status is not VotingRoundStatus.ACTIVE:
             raise VotingError("Voting round is not active")
-        cancelled = replace(round_, closed_at=now or datetime.now(UTC), status=VotingRoundStatus.CANCELLED)
-        await self._storage.async_set_voting_round(cancelled)
+        await self._storage.async_delete_voting_round(round_id)
         self._fire_event("wfd_voting_cancelled", {"round_id": round_id})
 
     async def async_submit_vote(self, round_id: str, user_id: str, meal_ids: list[str]) -> None:
