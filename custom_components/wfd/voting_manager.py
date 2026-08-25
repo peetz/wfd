@@ -69,7 +69,7 @@ class VotingManager:
             await self.async_close_round((await self._storage.async_get_voting_rounds())[-1].id)
         except (IndexError, VotingError):
             return
-        async_signal_update(self._hass)
+        await async_signal_update(self._hass)
 
     async def async_stop(self) -> None:
         """Stop scheduled voting callbacks during integration unload."""
