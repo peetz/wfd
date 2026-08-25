@@ -136,12 +136,15 @@ async def test_close_round_uses_decision_engine_and_persists_all_results(manager
 @pytest.mark.asyncio
 async def test_create_round_uses_configured_defaults(manager):
     _, storage, meals, household = manager
+    hass = MagicMock()
+    hass.bus.async_fire = MagicMock()
     voting = VotingManager(
         storage,
         meals,
         household,
         default_meals_required=2,
         default_deadline_minutes=30,
+        hass=hass,
     )
     meals.async_get_meals.return_value = [Meal("m1", "Pizza"), Meal("m2", "Pasta")]
     household.async_get_voters.return_value = [User("u1", "Alex")]
@@ -151,6 +154,15 @@ async def test_create_round_uses_configured_defaults(manager):
 
     assert round_.meals_required == 2
     assert round_.voting_deadline - round_.created_at == timedelta(minutes=30)
+    hass.bus.async_fire.assert_called_once_with(
+        "wfd_voting_started",
+        {
+            "round_id": round_.id,
+            "meals_required": 2,
+            "voter_count": 1,
+            "voting_deadline": round_.voting_deadline.isoformat(),
+        },
+    )
 
 
 @pytest.mark.asyncio
